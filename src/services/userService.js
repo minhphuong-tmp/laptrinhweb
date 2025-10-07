@@ -151,7 +151,7 @@ export const getAllUsers = async (limit = 50, offset = 0) => {
     try {
         const { data, error } = await supabase
             .from('users')
-            .select('id, name, email, image, bio, created_at')
+            .select('*') // Select tất cả fields để debug
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
 
@@ -160,7 +160,15 @@ export const getAllUsers = async (limit = 50, offset = 0) => {
             return { success: false, msg: error?.message };
         }
 
-        return { success: true, data: data || [] };
+        console.log('All users data:', data);
+        
+        // Đảm bảo có image field
+        const processedUsers = (data || []).map(user => ({
+            ...user,
+            image: user.image || user.avatar || user.avatar_url || null
+        }));
+
+        return { success: true, data: processedUsers };
     } catch (error) {
         console.log('got error: ', error);
         return { success: false, msg: error.message };
@@ -178,7 +186,7 @@ export const searchUsers = async (query, limit = 20) => {
 
         const { data, error } = await supabase
             .from('users')
-            .select('id, name, email, image, bio')
+            .select('*')
             .or(`name.ilike.${searchTerm},email.ilike.${searchTerm}`)
             .limit(limit);
 
@@ -187,7 +195,13 @@ export const searchUsers = async (query, limit = 20) => {
             return { success: false, msg: error?.message };
         }
 
-        return { success: true, data: data || [] };
+        // Đảm bảo có image field
+        const processedUsers = (data || []).map(user => ({
+            ...user,
+            image: user.image || user.avatar || user.avatar_url || null
+        }));
+
+        return { success: true, data: processedUsers };
     } catch (error) {
         console.log('got error: ', error);
         return { success: false, msg: error.message };

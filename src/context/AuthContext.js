@@ -41,56 +41,64 @@ export const AuthProvider = ({ children }) => {
         const checkSession = async () => {
             try {
                 setLoading(true);
-                const { data: { session }, error } = await supabase.auth.getSession();
-
-                if (error) {
-                    console.log('Session error:', error);
-                    setUser(null);
-                    return;
-                }
-
-                if (session) {
-                    // Tạo user object cơ bản từ session trước
-                    const basicUser = createBasicUserFromSession(session.user);
-
-                    // Set user ngay lập tức để tránh loading
-                    setUser(basicUser);
-                    setLoading(false);
-
-                    console.log('🎉 LOGIN SUCCESS - Basic user:', {
-                        id: basicUser.id,
-                        email: basicUser.email,
-                        name: basicUser.name,
-                        image: basicUser.image,
-                        bio: basicUser.bio,
-                        address: basicUser.address,
-                        phoneNumber: basicUser.phoneNumber
-                    });
-
-                    // Sau đó thử lấy thông tin chi tiết từ database (async, không block)
+                // Kiểm tra session từ localStorage thay vì Supabase client
+                const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
+                
+                if (storedToken) {
                     try {
-                        const userRes = await getUserData(session.user.id);
-                        if (userRes.success) {
-                            setUser(userRes.data);
+                        const authData = JSON.parse(storedToken);
+                        if (authData?.user && authData?.access_token) {
+                            const session = { user: authData.user };
+                            
+                            // Tạo user object cơ bản từ session trước
+                            const basicUser = createBasicUserFromSession(session.user);
 
-                            console.log('🎉 LOGIN SUCCESS - Detailed user:', {
-                                id: userRes.data.id,
-                                email: userRes.data.email,
-                                name: userRes.data.name,
-                                image: userRes.data.image,
-                                bio: userRes.data.bio,
-                                address: userRes.data.address,
-                                phoneNumber: userRes.data.phoneNumber,
-                                created_at: userRes.data.created_at,
-                                updated_at: userRes.data.updated_at
+                            // Set user ngay lập tức để tránh loading
+                            setUser(basicUser);
+                            setLoading(false);
+
+                            console.log('🎉 LOGIN SUCCESS - Basic user:', {
+                                id: basicUser.id,
+                                email: basicUser.email,
+                                name: basicUser.name,
+                                image: basicUser.image,
+                                bio: basicUser.bio,
+                                address: basicUser.address,
+                                phoneNumber: basicUser.phoneNumber
                             });
+
+                            // Sau đó thử lấy thông tin chi tiết từ database (async, không block)
+                            try {
+                                const userRes = await getUserData(session.user.id);
+                                if (userRes.success) {
+                                    setUser(userRes.data);
+
+                                    console.log('🎉 LOGIN SUCCESS - Detailed user:', {
+                                        id: userRes.data.id,
+                                        email: userRes.data.email,
+                                        name: userRes.data.name,
+                                        image: userRes.data.image,
+                                        bio: userRes.data.bio,
+                                        address: userRes.data.address,
+                                        phoneNumber: userRes.data.phoneNumber,
+                                        created_at: userRes.data.created_at,
+                                        updated_at: userRes.data.updated_at
+                                    });
+                                }
+                            } catch (error) {
+                                console.error('Error loading user data:', error);
+                            }
+                        } else {
+                            console.log('❌ Invalid stored token');
+                            setUser(null);
                         }
-                    } catch (error) {
-                        // Silent error
+                    } catch (parseError) {
+                        console.error('Error parsing stored token:', parseError);
+                        setUser(null);
                     }
                 } else {
+                    console.log('No stored token found');
                     setUser(null);
-                    setLoading(false);
                 }
             } catch (error) {
                 console.log('Check session error:', error);
@@ -102,59 +110,12 @@ export const AuthProvider = ({ children }) => {
 
         checkSession();
 
-        // Lắng nghe thay đổi auth state
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                console.log('Auth state changed:', event, session);
-
-                if (session) {
-                    // Tạo user object cơ bản từ session trước
-                    const basicUser = createBasicUserFromSession(session.user);
-
-                    // Set user ngay lập tức để tránh loading
-                    setUser(basicUser);
-                    setLoading(false);
-
-                    console.log('🎉 LOGIN SUCCESS - Basic user (auth change):', {
-                        id: basicUser.id,
-                        email: basicUser.email,
-                        name: basicUser.name,
-                        image: basicUser.image,
-                        bio: basicUser.bio,
-                        address: basicUser.address,
-                        phoneNumber: basicUser.phoneNumber
-                    });
-
-                    // Sau đó thử lấy thông tin chi tiết từ database (async, không block)
-                    try {
-                        const userRes = await getUserData(session.user.id);
-                        if (userRes.success) {
-                            setUser(userRes.data);
-
-                            console.log('🎉 LOGIN SUCCESS - Detailed user (auth change):', {
-                                id: userRes.data.id,
-                                email: userRes.data.email,
-                                name: userRes.data.name,
-                                image: userRes.data.image,
-                                bio: userRes.data.bio,
-                                address: userRes.data.address,
-                                phoneNumber: userRes.data.phoneNumber,
-                                created_at: userRes.data.created_at,
-                                updated_at: userRes.data.updated_at
-                            });
-                        }
-                    } catch (error) {
-                        // Silent error
-                    }
-                } else {
-                    setUser(null);
-                    setLoading(false);
-                }
-            }
-        );
+        // Không cần onAuthStateChange với REST API approach
+        console.log('Using REST API approach - no auth state change listener needed');
 
         return () => {
-            subscription.unsubscribe();
+            // Không cần unsubscribe với REST API approach
+            console.log('REST API cleanup - no subscription to unsubscribe');
         };
     }, []); // Chỉ chạy một lần khi mount
 
@@ -170,19 +131,36 @@ export const AuthProvider = ({ children }) => {
         console.log('AuthContext signIn called with:', email);
 
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: email.trim(),
-                password: password.trim(),
+            const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+            
+            const signInResponse = await fetch('https://oqtlakdvlmkaalymgrwd.supabase.co/auth/v1/token?grant_type=password', {
+                method: 'POST',
+                headers: {
+                    'apikey': apiKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email.trim(),
+                    password: password.trim()
+                })
             });
 
-            if (error) {
-                return { success: false, error };
+            if (!signInResponse.ok) {
+                const errorData = await signInResponse.json();
+                console.error('❌ Sign in error:', errorData);
+                return { success: false, error: { message: errorData.error_description || errorData.msg || 'Sign in failed' } };
             }
 
-            if (data?.user) {
+            const authData = await signInResponse.json();
+            console.log('✅ Sign in successful via REST API:', authData);
+
+            // Lưu token vào localStorage
+            localStorage.setItem('sb-oqtlakdvlmkaalymgrwd-auth-token', JSON.stringify(authData));
+
+            if (authData?.user) {
                 // Lấy thông tin user từ database
                 try {
-                    const userRes = await getUserData(data.user.id);
+                    const userRes = await getUserData(authData.user.id);
                     if (userRes.success) {
                         console.log('User data loaded successfully:', userRes.data);
                         setUser(userRes.data);
@@ -190,29 +168,29 @@ export const AuthProvider = ({ children }) => {
                         console.log('Failed to get user data, using session user:', userRes.msg);
                         // Fallback: sử dụng session.user với thông tin cơ bản
                         setUser({
-                            id: data.user.id,
-                            email: data.user.email,
-                            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
-                            image: data.user.user_metadata?.avatar_url || null,
-                            created_at: data.user.created_at,
-                            updated_at: data.user.updated_at
+                            id: authData.user.id,
+                            email: authData.user.email,
+                            name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
+                            image: authData.user.user_metadata?.avatar_url || null,
+                            created_at: authData.user.created_at,
+                            updated_at: authData.user.updated_at
                         });
                     }
                 } catch (error) {
                     console.error('Error getting user data:', error);
                     // Fallback: sử dụng session.user
                     setUser({
-                        id: data.user.id,
-                        email: data.user.email,
-                        name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
-                        image: data.user.user_metadata?.avatar_url || null,
-                        created_at: data.user.created_at,
-                        updated_at: data.user.updated_at
+                        id: authData.user.id,
+                        email: authData.user.email,
+                        name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
+                        image: authData.user.user_metadata?.avatar_url || null,
+                        created_at: authData.user.created_at,
+                        updated_at: authData.user.updated_at
                     });
                 }
             }
 
-            return { success: true, data };
+            return { success: true, data: authData };
         } catch (err) {
             console.error('Supabase signIn error:', err);
             return { success: false, error: err };
@@ -269,21 +247,7 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log('🚪 Starting to clear session...');
 
-            // Tạo timeout promise để tránh treo
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('SignOut timeout after 5 seconds')), 5000);
-            });
-
-            // Clear all Supabase sessions với timeout
-            const signOutPromise = supabase.auth.signOut();
-            const { error } = await Promise.race([signOutPromise, timeoutPromise]);
-
-            if (error) {
-                console.log('❌ Supabase signOut error:', error);
-                // Không return error, tiếp tục clear local data
-            } else {
-                console.log('✅ Supabase signOut successful');
-            }
+            console.log('✅ Using REST API approach - no server-side signOut needed');
 
             // Clear all localStorage items related to Supabase
             Object.keys(localStorage).forEach(key => {
@@ -342,14 +306,14 @@ export const AuthProvider = ({ children }) => {
         console.log('Current loading state:', loading);
 
         try {
-            const { data: { session }, error } = await supabase.auth.getSession();
-            console.log('Supabase session:', session);
-            console.log('Session error:', error);
-
-            if (session) {
-                console.log('Session user:', session.user);
-                console.log('Session expires at:', new Date(session.expires_at * 1000));
-                console.log('Session is expired:', new Date() > new Date(session.expires_at * 1000));
+            const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
+            console.log('Stored token:', storedToken ? 'Present' : 'Not found');
+            
+            if (storedToken) {
+                const authData = JSON.parse(storedToken);
+                console.log('Auth data:', authData);
+                console.log('User from token:', authData?.user);
+                console.log('Access token:', authData?.access_token ? 'Present' : 'Not found');
             }
 
             console.log('LocalStorage Supabase keys:', Object.keys(localStorage).filter(key => key.startsWith('sb-')));

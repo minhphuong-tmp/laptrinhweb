@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
 import { getConversationById, getMessages, markConversationAsRead, sendMessage } from '../services/chatService';
 import './Chat.css';
 
@@ -20,7 +19,7 @@ const Chat = () => {
         if (id && user) {
             loadConversation();
             loadMessages();
-            setupRealtimeSubscription();
+            setupPolling();
         }
     }, [id, user]);
 
@@ -59,40 +58,14 @@ const Chat = () => {
         }
     };
 
-    const setupRealtimeSubscription = () => {
-        const channel = supabase
-            .channel(`messages-${id}`)
-            .on('postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages',
-                    filter: `conversation_id=eq.${id}`
-                },
-                async (payload) => {
-                    // Lấy thông tin đầy đủ của tin nhắn mới
-                    const { data: newMessage } = await supabase
-                        .from('messages')
-                        .select(`
-              *,
-              sender:users(id, name, image)
-            `)
-                        .eq('id', payload.new.id)
-                        .single();
-
-                    if (newMessage) {
-                        setMessages(prev => [...prev, newMessage]);
-                        // Đánh dấu đã đọc nếu là tin nhắn của mình
-                        if (newMessage.sender_id === user.id) {
-                            await markConversationAsRead(id, user.id);
-                        }
-                    }
-                }
-            )
-            .subscribe();
+    const setupPolling = () => {
+        // Polling thay vì real-time subscription
+        const pollInterval = setInterval(() => {
+            loadMessages();
+        }, 3000); // Poll mỗi 3 giây cho messages
 
         return () => {
-            supabase.removeChannel(channel);
+            clearInterval(pollInterval);
         };
     };
 

@@ -90,93 +90,68 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 'avatar')
                 console.log(`✅ Skipping bucket check for upload bucket`);
             }
 
-            // Thử tạo signed URL với thời gian dài hơn
-            const signedUrlPromise = supabase.storage
-                .from(bucket)
-                .createSignedUrl(path, 86400); // 24 giờ
-
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Timeout')), 3000)
+            // Thử public URL trước (nhanh nhất)
+            const publicUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/public/${bucket}/${path}`;
+            
+            // Test URL bằng fetch với timeout
+            const testPromise = fetch(publicUrl, { method: 'HEAD' });
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 5000)
             );
+            
+            try {
+                const response = await Promise.race([testPromise, timeoutPromise]);
+                
+                if (response.ok) {
+                    console.log(`✅ Found image via public URL: ${bucket}/${path}`);
+                    
+                    // Optimize URL for mobile if needed
+                    let optimizedUrl = publicUrl;
+                    if (size !== 'full' && MOBILE_SIZES[size]) {
+                        optimizedUrl = addImageOptimization(publicUrl, MOBILE_SIZES[size]);
+                    }
 
-            const { data, error } = await Promise.race([signedUrlPromise, timeoutPromise]);
-
-            if (!error && data?.signedUrl) {
-                console.log(`✅ Found image in bucket: ${bucket}, path: ${path}`);
-
-                // Optimize URL for mobile if needed
-                let optimizedUrl = data.signedUrl;
-                if (size !== 'full' && MOBILE_SIZES[size]) {
-                    optimizedUrl = addImageOptimization(data.signedUrl, MOBILE_SIZES[size]);
+                    imageCache.set(cacheKey, optimizedUrl);
+                    return optimizedUrl;
                 }
+            } catch (testError) {
+                console.log(`❌ Public URL test failed for ${bucket}/${path}:`, testError.message);
+            }
 
-                imageCache.set(cacheKey, optimizedUrl);
-                return optimizedUrl;
-            } else if (error) {
-                console.log(`❌ Bucket ${bucket}, path ${path} error:`, error.message);
+            // Nếu public URL không work, thử signed URL bằng REST API
+            const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+            const signedUrlApi = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/sign/${bucket}/${path}`;
+            const signedResponse = await fetch(signedUrlApi, {
+                method: 'POST',
+                headers: {
+                    'apikey': apiKey,
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ expiresIn: 86400 }) // 24 giờ
+            });
+
+            if (signedResponse.ok) {
+                const signedData = await signedResponse.json();
+                if (signedData.signedURL) {
+                    console.log(`✅ Found image via signed URL: ${bucket}/${path}`);
+                    
+                    // Optimize URL for mobile if needed
+                    let optimizedUrl = signedData.signedURL;
+                    if (size !== 'full' && MOBILE_SIZES[size]) {
+                        optimizedUrl = addImageOptimization(signedData.signedURL, MOBILE_SIZES[size]);
+                    }
+
+                    imageCache.set(cacheKey, optimizedUrl);
+                    return optimizedUrl;
+                }
             }
         } catch (bucketError) {
             console.log(`❌ Bucket ${bucket}, path ${path} exception:`, bucketError.message);
         }
     }
 
-    // Nếu không tìm thấy qua signed URL, thử getPublicUrl
-    for (const { bucket, path } of searchPaths) {
-        try {
-            console.log(`🔍 Trying getPublicUrl for bucket: ${bucket}, path: ${path}`);
-            const { data } = supabase.storage
-                .from(bucket)
-                .getPublicUrl(path);
-
-            if (data?.publicUrl) {
-                console.log(`✅ getPublicUrl works: ${data.publicUrl}`);
-
-                // Optimize URL for mobile if needed
-                let optimizedUrl = data.publicUrl;
-                if (size !== 'full' && MOBILE_SIZES[size]) {
-                    optimizedUrl = addImageOptimization(data.publicUrl, MOBILE_SIZES[size]);
-                }
-
-                imageCache.set(cacheKey, optimizedUrl);
-                return optimizedUrl;
-            }
-        } catch (getPublicUrlError) {
-            console.log(`❌ getPublicUrl failed for bucket ${bucket}, path ${path}:`, getPublicUrlError.message);
-        }
-    }
-
-    // Fallback: thử public URL trực tiếp
-    for (const { bucket, path } of searchPaths) {
-        const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
-
-        try {
-            console.log(`🔍 Checking public URL: ${publicUrl}`);
-            const response = await fetch(publicUrl, {
-                method: 'HEAD',
-                timeout: 3000
-            });
-
-            if (response.ok) {
-                console.log(`✅ Public URL works: ${publicUrl}`);
-
-                // Optimize URL for mobile if needed
-                let optimizedUrl = publicUrl;
-                if (size !== 'full' && MOBILE_SIZES[size]) {
-                    optimizedUrl = addImageOptimization(publicUrl, MOBILE_SIZES[size]);
-                }
-
-                imageCache.set(cacheKey, optimizedUrl);
-                return optimizedUrl;
-            }
-        } catch (fetchError) {
-            console.log(`❌ Public URL failed: ${publicUrl}`, fetchError.message);
-        }
-    }
-
-    console.log('❌ No image found, returning null');
-    // Trả về null để Avatar component có thể fallback về placeholder
-    imageCache.set(cacheKey, null);
-    console.log('❌ All methods failed, using default avatar');
+    console.log('❌ No image found, returning default');
     return '/images/defaultUser.png';
 };
 
@@ -300,43 +275,59 @@ export const createProfilesBucket = async () => {
     }
 };
 
-// Function để upload avatar
+// Function để upload avatar bằng REST API
 export const uploadAvatar = async (file, userId) => {
     try {
-        console.log('📤 Uploading avatar...');
-
-        // Tạo bucket nếu chưa có
-        await createProfilesBucket();
+        console.log('📤 Uploading avatar via REST API...');
 
         const fileName = `${userId}.png`;
+        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+        
+        // Upload file bằng REST API
+        const uploadUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/profiles/${fileName}`;
+        
+        const uploadResponse = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'apikey': apiKey,
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': file.type,
+                'Cache-Control': '3600',
+                'x-upsert': 'true'
+            },
+            body: file
+        });
 
-        const { data, error } = await supabase.storage
-            .from('profiles')
-            .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: true
-            });
-
-        if (error) {
-            console.error('❌ Error uploading avatar:', error);
-            return { success: false, error };
+        if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            console.error('❌ Error uploading avatar:', uploadResponse.status, errorText);
+            return { success: false, error: { message: errorText, status: uploadResponse.status } };
         }
 
-        console.log('✅ Avatar uploaded successfully:', data);
+        const uploadData = await uploadResponse.json();
+        console.log('✅ Avatar uploaded successfully via REST API:', uploadData);
 
-        // Cập nhật userData trong database
-        const { error: updateError } = await supabase
-            .from('users')
-            .update({ image: `profiles/${fileName}` })
-            .eq('id', userId);
+        // Cập nhật userData trong database bằng REST API
+        const updateUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/users';
+        const updateResponse = await fetch(`${updateUrl}?id=eq.${userId}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': apiKey,
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ image: `profiles/${fileName}` })
+        });
 
-        if (updateError) {
-            console.error('❌ Error updating user image:', updateError);
+        if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.error('❌ Error updating user image:', updateResponse.status, errorText);
         } else {
-            console.log('✅ User image updated in database');
+            console.log('✅ User image updated in database via REST API');
         }
 
-        return { success: true, data };
+        return { success: true, data: uploadData };
     } catch (err) {
         console.error('❌ Exception uploading avatar:', err);
         return { success: false, error: err };

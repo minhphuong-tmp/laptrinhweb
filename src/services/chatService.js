@@ -71,9 +71,11 @@ export const getConversations = async (userId) => {
                         user_id,
                         last_read_at,
                         is_admin,
-                        user:users(id, name, image)
+                        user:users(*)
                     `)
                     .eq('conversation_id', item.conversation_id);
+
+                console.log('Conversation members:', members);
 
                 return {
                     ...item.conversation,
@@ -105,7 +107,7 @@ export const getConversationById = async (conversationId) => {
                     user_id,
                     last_read_at,
                     is_admin,
-                    user:users(id, name, image)
+                    user:users(*)
                 )
             `)
             .eq('id', conversationId)
@@ -203,7 +205,7 @@ export const getMessages = async (conversationId, limit = 50, offset = 0) => {
             .from('messages')
             .select(`
                 *,
-                sender:users(id, name, image),
+                sender:users(*),
                 message_reads(
                     user_id,
                     read_at

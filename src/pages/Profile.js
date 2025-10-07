@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react';
 import Avatar from '../components/Avatar';
-import PostCard from '../components/PostCard';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
-import { fetchPost } from '../services/postService';
-import { useScrollToLoad } from '../hooks/useInfiniteScroll';
+import { getUserImageSrc } from '../services/imageService';
 import './Profile.css';
 
 const Profile = () => {
@@ -36,37 +33,107 @@ const Profile = () => {
         }
     }, [user]);
 
-    // Fetch posts của user với phân trang
+    // Fetch posts của user với REST API
     const loadUserPosts = async (loadMore = false) => {
         if (!user?.id) return;
 
         setPostsLoading(true);
         try {
-            const limit = loadMore ? postsLimit + 4 : 4;
-            const result = await fetchPost(limit, user.id);
+            const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+            
+            // Load posts của user từ REST API
+            const postsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/posts?userId=eq.${user.id}&order=created_at.desc&limit=${postsLimit}`;
+            const postsResponse = await fetch(postsUrl, {
+                method: 'GET',
+                headers: {
+                    'apikey': apiKey,
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            if (result.success) {
-                const newPosts = result.data;
+            if (postsResponse.ok) {
+                const postsData = await postsResponse.json();
+                console.log('✅ User posts loaded:', postsData.length);
+
+                // Load likes và comments
+                const likesUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes';
+                const likesResponse = await fetch(likesUrl, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const commentsUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/comments';
+                const commentsResponse = await fetch(commentsUrl, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                let likesData = [];
+                let commentsData = [];
+
+                if (likesResponse.ok) {
+                    likesData = await likesResponse.json();
+                }
+                if (commentsResponse.ok) {
+                    commentsData = await commentsResponse.json();
+                }
+
+                // Format posts
+                const formattedPosts = await Promise.all(postsData.map(async (post) => {
+                    const postLikes = likesData.filter(like => like.postId === post.id);
+                    const postComments = commentsData.filter(comment => comment.postId === post.id);
+                    
+                    // Xử lý HTML tags trong body
+                    const cleanBody = post.body ? post.body.replace(/<[^>]*>/g, '') : '';
+                    const title = cleanBody ? cleanBody.substring(0, 50) + (cleanBody.length > 50 ? '...' : '') : 'Không có tiêu đề';
+                    
+                    // Xử lý ảnh từ trường file
+                    let imageUrl = null;
+                    if (post.file) {
+                        if (post.file.startsWith('http')) {
+                            imageUrl = post.file;
+                        } else {
+                            imageUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/public/upload/${post.file}`;
+                        }
+                    }
+
+                    return {
+                        ...post,
+                        title: title,
+                        content: cleanBody || 'Không có nội dung',
+                        image: imageUrl,
+                        user: {
+                            id: user.id,
+                            name: user.name,
+                            image: user.image
+                        },
+                        postLikes: postLikes,
+                        comments: postComments,
+                        likes_count: postLikes.length,
+                        comments_count: postComments.length
+                    };
+                }));
 
                 if (loadMore) {
-                    // Nếu load more, kiểm tra xem có thêm bài không
-                    if (newPosts.length === userPosts.length) {
-                        setHasMore(false);
-                    } else {
-                        setUserPosts(newPosts);
-                        setPostsLimit(limit);
-                    }
+                    setUserPosts(prev => [...prev, ...formattedPosts]);
                 } else {
-                    // Load lần đầu
-                    setUserPosts(newPosts);
-                    setPostsLimit(4);
-                    setHasMore(newPosts.length >= 4);
+                    setUserPosts(formattedPosts);
                 }
-            } else {
-                console.error('Error fetching user posts:', result.msg);
+
+                setHasMore(formattedPosts.length === postsLimit);
+                setPostsLimit(prev => prev + 4);
             }
         } catch (error) {
-            console.error('Error fetching user posts:', error);
+            console.error('Error loading user posts:', error);
         } finally {
             setPostsLoading(false);
             setIsLoadingMore(false);
@@ -80,8 +147,17 @@ const Profile = () => {
         }
     };
 
-    // Sử dụng infinite scroll
-    useScrollToLoad(handleLoadMore, hasMore, postsLoading || isLoadingMore, 200);
+    // Scroll listener cho infinite scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 1000) {
+                handleLoadMore();
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [hasMore, postsLoading, isLoadingMore]);
 
     useEffect(() => {
         loadUserPosts();
@@ -92,29 +168,41 @@ const Profile = () => {
 
         setLoading(true);
         try {
-            const { error } = await supabase
-                .from('users')
-                .update({
+            const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+            
+            const updateUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/users?id=eq.${user.id}`;
+            const response = await fetch(updateUrl, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': apiKey,
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
                     name: formData.name,
                     bio: formData.bio,
                     image: formData.image,
                     address: formData.address,
                     phoneNumber: formData.phoneNumber
                 })
-                .eq('id', user.id);
-
-            if (error) throw error;
-
-            // Update local user data
-            setUserData({
-                name: formData.name,
-                bio: formData.bio,
-                image: formData.image,
-                address: formData.address,
-                phoneNumber: formData.phoneNumber
             });
 
-            setEditing(false);
+            if (response.ok) {
+                console.log('✅ Profile updated successfully');
+                // Update local user data
+                setUserData({
+                    ...user,
+                    name: formData.name,
+                    bio: formData.bio,
+                    image: formData.image,
+                    address: formData.address,
+                    phoneNumber: formData.phoneNumber
+                });
+                setEditing(false);
+            } else {
+                console.error('❌ Error updating profile:', response.status);
+            }
         } catch (error) {
             console.error('Error updating profile:', error);
         } finally {
@@ -303,11 +391,54 @@ const Profile = () => {
                     ) : userPosts.length > 0 ? (
                         <div className="posts-grid">
                             {userPosts.map((post) => (
-                                <PostCard
-                                    key={post.id}
-                                    item={post}
-                                    currentUser={user}
-                                />
+                                <div key={post.id} className="post-card">
+                                    <div className="post-header">
+                                        <div className="post-author">
+                                            <Avatar 
+                                                src={post.user?.image}
+                                                name={post.user?.name}
+                                                size={40}
+                                            />
+                                            <div className="author-info">
+                                                <h4 className="author-name">
+                                                    {post.user?.name || 'Người dùng'}
+                                                </h4>
+                                                <span className="post-time">
+                                                    {new Date(post.created_at).toLocaleDateString('vi-VN')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="post-content">
+                                        <h3 className="post-title">{post.title}</h3>
+                                        <p className="post-text">{post.content}</p>
+                                        {post.image && (
+                                            <div className="post-image">
+                                                <img 
+                                                    src={post.image} 
+                                                    alt={post.title}
+                                                    loading="lazy"
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="post-actions">
+                                        <button className="action-button like-button">
+                                            ❤️ {post.likes_count || 0}
+                                        </button>
+                                        <button className="action-button comment-button">
+                                            💬 {post.comments_count || 0}
+                                        </button>
+                                        <button className="action-button share-button">
+                                            📤 Chia sẻ
+                                        </button>
+                                    </div>
+                                </div>
                             ))}
                             {/* Loading indicator cho infinite scroll */}
                             {(postsLoading || isLoadingMore) && (

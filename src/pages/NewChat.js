@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { createDirectConversation, createGroupConversation } from '../services/chatService';
 import { getAllUsers } from '../services/userService';
@@ -155,7 +156,11 @@ const NewChat = () => {
                             onClick={() => handleUserToggle(userItem.id)}
                         >
                             <div className="user-avatar">
-                                {userItem.image || '👤'}
+                                <Avatar 
+                                    src={userItem.image}
+                                    name={userItem.name}
+                                    size={50}
+                                />
                             </div>
                             <div className="user-info">
                                 <h4 className="user-name">{userItem.name}</h4>

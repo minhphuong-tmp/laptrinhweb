@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
 import { deleteConversation, getConversations } from '../services/chatService';
 import './ChatList.css';
 
@@ -14,7 +13,7 @@ const ChatList = () => {
     useEffect(() => {
         if (user) {
             loadConversations();
-            setupRealtimeSubscription();
+            setupPolling();
         }
     }, [user]);
 
@@ -31,19 +30,14 @@ const ChatList = () => {
         }
     };
 
-    const setupRealtimeSubscription = () => {
-        const channel = supabase
-            .channel('messages')
-            .on('postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'messages' },
-                () => {
-                    loadConversations();
-                }
-            )
-            .subscribe();
+    const setupPolling = () => {
+        // Polling thay vì real-time subscription
+        const pollInterval = setInterval(() => {
+            loadConversations();
+        }, 5000); // Poll mỗi 5 giây
 
         return () => {
-            supabase.removeChannel(channel);
+            clearInterval(pollInterval);
         };
     };
 
