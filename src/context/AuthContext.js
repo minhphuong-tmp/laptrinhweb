@@ -15,6 +15,11 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // Helper function để update user data
+    const setUserData = (data) => {
+        setUser(prev => ({ ...prev, ...data }));
+    };
+
     console.log('AuthContext state:', { 
         user: user ? { id: user.id, email: user.email, name: user.name, image: user.image } : null, 
         loading 
@@ -61,23 +66,47 @@ export const AuthProvider = ({ children }) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 console.log('Auth state changed:', event, session);
-                if (session) {
+                if (session && session.user) {
                     console.log('Setting user:', session.user);
                     setUser(session.user);
 
-                    // Tạm thời skip database query và dùng user metadata
-                    console.log('Using user metadata instead of database query...');
-                    setUserData({
-                        id: session.user.id,
-                        name: session.user.user_metadata?.name || 'User',
-                        email: session.user.email,
-                        avatar: session.user.user_metadata?.avatar_url || null
-                    });
-                    console.log('User data set from metadata:', {
-                        id: session.user.id,
-                        name: session.user.user_metadata?.name || 'User',
-                        email: session.user.email
-                    });
+                    // Lấy thông tin user từ database hoặc metadata
+                    try {
+                        const { data: userData } = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('id', session.user.id)
+                            .single();
+
+                        if (userData) {
+                            console.log('User data from database:', userData);
+                            setUserData({
+                                id: session.user.id,
+                                name: userData.name || session.user.user_metadata?.name || 'User',
+                                email: session.user.email,
+                                image: userData.image || session.user.user_metadata?.avatar_url || null,
+                                bio: userData.bio || null
+                            });
+                        } else {
+                            // Fallback to session user with metadata
+                            console.log('No user data in database, using metadata');
+                            setUserData({
+                                id: session.user.id,
+                                name: session.user.user_metadata?.name || 'User',
+                                email: session.user.email,
+                                image: session.user.user_metadata?.avatar_url || null
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error fetching user data:', error);
+                        // Fallback to session user with metadata
+                        setUserData({
+                            id: session.user.id,
+                            name: session.user.user_metadata?.name || 'User',
+                            email: session.user.email,
+                            image: session.user.user_metadata?.avatar_url || null
+                        });
+                    }
                 } else {
                     console.log('No session, clearing user data');
                     setUser(null);
@@ -179,9 +208,46 @@ export const AuthProvider = ({ children }) => {
         return { data, error };
     };
 
-    const signOut = async () => {
-        const { error } = await supabase.auth.signOut();
-        return { error };
+    const clearSession = async () => {
+        try {
+            console.log('Starting to clear session...');
+            
+            // Clear all Supabase sessions
+            await supabase.auth.signOut();
+            
+            // Clear all localStorage items related to Supabase
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('sb-') || key.includes('supabase')) {
+                    localStorage.removeItem(key);
+                    console.log('Removed from localStorage:', key);
+                }
+            });
+            
+            // Clear session storage
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('sb-') || key.includes('supabase')) {
+                    sessionStorage.removeItem(key);
+                    console.log('Removed from sessionStorage:', key);
+                }
+            });
+            
+            // Reset state immediately
+            setUser(null);
+            setUserData(null);
+            setLoading(false);
+            
+            console.log('Session cleared completely, user should be null now');
+            
+            // Force a small delay to ensure state updates
+            setTimeout(() => {
+                console.log('Final state check - user:', user, 'loading:', loading);
+            }, 100);
+            
+            return { success: true };
+        } catch (error) {
+            console.error('Error clearing session:', error);
+            return { success: false, error };
+        }
     };
 
     const value = {
@@ -189,9 +255,10 @@ export const AuthProvider = ({ children }) => {
         loading,
         signIn,
         signUp,
-        signOut,
+        signOut: clearSession,
         setUser,
-        setUserData: (data) => setUser(prev => ({ ...prev, ...data })), // Giống mobile app
+        setUserData,
+        clearSession,
     };
 
     return (

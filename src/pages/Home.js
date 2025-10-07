@@ -1,14 +1,27 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Home.css';
 
 const Home = () => {
-    const { user, signOut } = useAuth();
+    const { user, signOut, clearSession } = useAuth();
+    const navigate = useNavigate();
 
     console.log('Home component rendering with user:', user);
 
     const handleSignOut = async () => {
         await signOut();
+    };
+
+    const handleClearSession = async () => {
+        if (window.confirm('Bạn có chắc chắn muốn xóa tất cả session và đăng xuất?')) {
+            const result = await clearSession();
+            if (result.success) {
+                // Force redirect to login
+                navigate('/login', { replace: true });
+                // Also reload the page to ensure clean state
+                window.location.href = '/login';
+            }
+        }
     };
 
     return (
@@ -90,6 +103,18 @@ const Home = () => {
                     onClick={handleSignOut}
                 >
                     🚪 Đăng xuất
+                </button>
+                <button 
+                    className="quick-action-button warning"
+                    onClick={handleClearSession}
+                >
+                    🗑️ Xóa Session
+                </button>
+                <button 
+                    className="quick-action-button info"
+                    onClick={() => window.location.reload()}
+                >
+                    🔄 Reload Page
                 </button>
             </div>
         </div>

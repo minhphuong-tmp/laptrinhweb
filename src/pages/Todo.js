@@ -1,10 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { 
+    createTodo, 
+    getTodos, 
+    deleteTodo, 
+    toggleTodoComplete,
+    getFilteredTodos,
+    getPriorityColor,
+    getPriorityText
+} from '../services/todoService';
 import './Todo.css';
 
 const Todo = () => {
+    const { user } = useAuth();
     const [todos, setTodos] = useState([]);
     const [filter, setFilter] = useState('all');
     const [showAddForm, setShowAddForm] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [newTodo, setNewTodo] = useState({
         title: '',
         description: '',
@@ -12,102 +24,102 @@ const Todo = () => {
         deadline: ''
     });
 
+    const loadTodos = useCallback(async () => {
+        if (!user?.id) return;
+        
+        setLoading(true);
+        try {
+            const result = await getTodos(user.id);
+            if (result.success) {
+                setTodos(result.data);
+            } else {
+                console.error('Error loading todos:', result.msg);
+            }
+        } catch (error) {
+            console.error('Error loading todos:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [user?.id]);
+
     useEffect(() => {
-        loadTodos();
-    }, []);
+        if (user?.id) {
+            loadTodos();
+        }
+    }, [user?.id, loadTodos]);
 
-    const loadTodos = () => {
-        const savedTodos = localStorage.getItem('todos');
-        if (savedTodos) {
-            setTodos(JSON.parse(savedTodos));
+    const addTodo = async () => {
+        if (!newTodo.title.trim() || !user?.id) return;
+
+        try {
+            const todoData = {
+                user_id: user.id,
+                title: newTodo.title,
+                description: newTodo.description,
+                priority: newTodo.priority,
+                deadline: newTodo.deadline || null,
+                completed: false
+            };
+
+            const result = await createTodo(todoData);
+            if (result.success) {
+                setNewTodo({ title: '', description: '', priority: 'medium', deadline: '' });
+                setShowAddForm(false);
+                loadTodos(); // Reload todos
+            } else {
+                console.error('Error creating todo:', result.msg);
+            }
+        } catch (error) {
+            console.error('Error creating todo:', error);
         }
     };
 
-    const saveTodos = (todosToSave) => {
-        localStorage.setItem('todos', JSON.stringify(todosToSave));
-        setTodos(todosToSave);
-    };
+    const toggleTodo = async (id) => {
+        const todo = todos.find(t => t.id === id);
+        if (!todo) return;
 
-    const addTodo = () => {
-        if (!newTodo.title.trim()) return;
-
-        const todo = {
-            id: Date.now(),
-            ...newTodo,
-            completed: false,
-            createdAt: new Date().toISOString()
-        };
-
-        const updatedTodos = [...todos, todo];
-        saveTodos(updatedTodos);
-        setNewTodo({ title: '', description: '', priority: 'medium', deadline: '' });
-        setShowAddForm(false);
-    };
-
-    const toggleTodo = (id) => {
-        const updatedTodos = todos.map(todo =>
-            todo.id === id ? { ...todo, completed: !todo.completed } : todo
-        );
-        saveTodos(updatedTodos);
-    };
-
-    const deleteTodo = (id) => {
-        const updatedTodos = todos.filter(todo => todo.id !== id);
-        saveTodos(updatedTodos);
-    };
-
-    const getFilteredTodos = () => {
-        switch (filter) {
-            case 'active':
-                return todos.filter(todo => !todo.completed);
-            case 'completed':
-                return todos.filter(todo => todo.completed);
-            case 'today':
-                const today = new Date().toDateString();
-                return todos.filter(todo => 
-                    todo.deadline && new Date(todo.deadline).toDateString() === today
-                );
-            case 'overdue':
-                const now = new Date();
-                return todos.filter(todo => 
-                    todo.deadline && new Date(todo.deadline) < now && !todo.completed
-                );
-            default:
-                return todos;
+        try {
+            const result = await toggleTodoComplete(id, !todo.completed);
+            if (result.success) {
+                loadTodos(); // Reload todos
+            } else {
+                console.error('Error toggling todo:', result.msg);
+            }
+        } catch (error) {
+            console.error('Error toggling todo:', error);
         }
     };
 
-    const getPriorityColor = (priority) => {
-        switch (priority) {
-            case 'high': return '#ef4444';
-            case 'medium': return '#f59e0b';
-            case 'low': return '#10b981';
-            default: return '#6b7280';
+    const deleteTodoItem = async (id) => {
+        try {
+            const result = await deleteTodo(id);
+            if (result.success) {
+                loadTodos(); // Reload todos
+            } else {
+                console.error('Error deleting todo:', result.msg);
+            }
+        } catch (error) {
+            console.error('Error deleting todo:', error);
         }
     };
 
-    const getPriorityText = (priority) => {
-        switch (priority) {
-            case 'high': return 'Cao';
-            case 'medium': return 'Trung bình';
-            case 'low': return 'Thấp';
-            default: return 'Trung bình';
-        }
-    };
-
-    const filteredTodos = getFilteredTodos();
+    const filteredTodos = getFilteredTodos(todos, filter);
 
     return (
         <div className="todo-container">
-            <div className="todo-header">
-                <h2>Ghi chú</h2>
-                <button 
-                    className="btn btn-primary"
-                    onClick={() => setShowAddForm(true)}
-                >
-                    + Thêm ghi chú
-                </button>
-            </div>
+            {loading ? (
+                <div className="loading">Đang tải...</div>
+            ) : (
+                <>
+                    <div className="todo-header">
+                        <h2>Ghi chú</h2>
+                        <button 
+                            className="btn btn-primary"
+                            onClick={() => setShowAddForm(true)}
+                        >
+                            + Thêm ghi chú
+                        </button>
+                    </div>
 
             <div className="todo-filters">
                 <button 
@@ -255,7 +267,7 @@ const Todo = () => {
                             </div>
                             <button 
                                 className="delete-btn"
-                                onClick={() => deleteTodo(todo.id)}
+                                onClick={() => deleteTodoItem(todo.id)}
                             >
                                 🗑️
                             </button>
@@ -263,6 +275,8 @@ const Todo = () => {
                     ))
                 )}
             </div>
+                </>
+            )}
         </div>
     );
 };

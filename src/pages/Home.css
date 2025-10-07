@@ -135,6 +135,16 @@
 }
 
 /* Responsive */
+.quick-action-button.info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+}
+
+.quick-action-button.info:hover {
+    background: linear-gradient(135deg, #138496, #117a8b);
+    transform: translateY(-2px);
+}
+
 @media (max-width: 768px) {
     .home-container {
         padding: var(--spacing-md);

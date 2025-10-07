@@ -1,5 +1,6 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
+import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import Loading from './components/Loading';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -17,26 +18,28 @@ import Todo from './pages/Todo';
 
 function App() {
     return (
-        <AuthProvider>
-            <Router>
-                <div className="App">
-                    <Routes>
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/signup" element={<SignUp />} />
-                        <Route path="/" element={<Navigate to="/home" replace />} />
-                        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                        <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
-                        <Route path="/todo" element={<ProtectedRoute><Todo /></ProtectedRoute>} />
-                        <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
-                        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-                        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                        <Route path="/chat" element={<ProtectedRoute><ChatList /></ProtectedRoute>} />
-                        <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-                        <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
-                    </Routes>
-                </div>
-            </Router>
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <Router>
+                    <div className="App">
+                        <Routes>
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/signup" element={<SignUp />} />
+                            <Route path="/" element={<Navigate to="/home" replace />} />
+                            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                            <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
+                            <Route path="/todo" element={<ProtectedRoute><Todo /></ProtectedRoute>} />
+                            <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
+                            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                            <Route path="/chat" element={<ProtectedRoute><ChatList /></ProtectedRoute>} />
+                            <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+                            <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
+                        </Routes>
+                    </div>
+                </Router>
+            </AuthProvider>
+        </ErrorBoundary>
     );
 }
 

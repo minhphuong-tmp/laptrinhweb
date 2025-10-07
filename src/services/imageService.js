@@ -1,11 +1,18 @@
-// Service để xử lý ảnh từ Supabase Storage
+// Service để xử lý ảnh từ Supabase Storage - Optimized for mobile
 import { supabase } from '../lib/supabase';
 
-const supabaseUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co';
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://oqtlakdvlmkaalymgrwd.supabase.co';
 
 // Cache để tránh request trùng lặp
 const imageCache = new Map();
 const bucketCache = new Set();
+
+// Mobile-optimized image sizes
+const MOBILE_SIZES = {
+    avatar: { width: 150, height: 150, quality: 80 },
+    thumbnail: { width: 300, height: 200, quality: 75 },
+    full: { width: 800, height: 600, quality: 85 }
+};
 
 // Kiểm tra bucket có tồn tại không
 const checkBucketExists = async (bucketName) => {
@@ -29,17 +36,20 @@ const checkBucketExists = async (bucketName) => {
     return false;
 };
 
-export const getUserImageSrc = async (imagePath, name = 'User', size = 100) => {
+export const getUserImageSrc = async (imagePath, name = 'User', size = 'avatar') => {
     if (!imagePath) return null;
     
+    // Tạo cache key với size
+    const cacheKey = `${imagePath}_${size}`;
+    
     // Kiểm tra cache trước
-    if (imageCache.has(imagePath)) {
-        return imageCache.get(imagePath);
+    if (imageCache.has(cacheKey)) {
+        return imageCache.get(cacheKey);
     }
     
     // Nếu imagePath đã là URL đầy đủ, trả về luôn
     if (imagePath.startsWith('http')) {
-        imageCache.set(imagePath, imagePath);
+        imageCache.set(cacheKey, imagePath);
         return imagePath;
     }
     
@@ -49,7 +59,7 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 100) => {
         cleanPath = imagePath.replace('profiles/', '');
     }
     
-    console.log(`🔍 Looking for image: ${cleanPath}`);
+    console.log(`🔍 Looking for image: ${cleanPath} (size: ${size})`);
     
     // Thử các bucket và thư mục con
     const searchPaths = [
@@ -84,8 +94,15 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 100) => {
             
             if (!error && data?.signedUrl) {
                 console.log(`✅ Found image in bucket: ${bucket}, path: ${path}`);
-                imageCache.set(imagePath, data.signedUrl);
-                return data.signedUrl;
+                
+                // Optimize URL for mobile if needed
+                let optimizedUrl = data.signedUrl;
+                if (size !== 'full' && MOBILE_SIZES[size]) {
+                    optimizedUrl = addImageOptimization(data.signedUrl, MOBILE_SIZES[size]);
+                }
+                
+                imageCache.set(cacheKey, optimizedUrl);
+                return optimizedUrl;
             } else if (error) {
                 console.log(`❌ Bucket ${bucket}, path ${path} error:`, error.message);
             }
@@ -104,8 +121,15 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 100) => {
             
             if (data?.publicUrl) {
                 console.log(`✅ getPublicUrl works: ${data.publicUrl}`);
-                imageCache.set(imagePath, data.publicUrl);
-                return data.publicUrl;
+                
+                // Optimize URL for mobile if needed
+                let optimizedUrl = data.publicUrl;
+                if (size !== 'full' && MOBILE_SIZES[size]) {
+                    optimizedUrl = addImageOptimization(data.publicUrl, MOBILE_SIZES[size]);
+                }
+                
+                imageCache.set(cacheKey, optimizedUrl);
+                return optimizedUrl;
             }
         } catch (getPublicUrlError) {
             console.log(`❌ getPublicUrl failed for bucket ${bucket}, path ${path}:`, getPublicUrlError.message);
@@ -125,8 +149,15 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 100) => {
             
             if (response.ok) {
                 console.log(`✅ Public URL works: ${publicUrl}`);
-                imageCache.set(imagePath, publicUrl);
-                return publicUrl;
+                
+                // Optimize URL for mobile if needed
+                let optimizedUrl = publicUrl;
+                if (size !== 'full' && MOBILE_SIZES[size]) {
+                    optimizedUrl = addImageOptimization(publicUrl, MOBILE_SIZES[size]);
+                }
+                
+                imageCache.set(cacheKey, optimizedUrl);
+                return optimizedUrl;
             }
         } catch (fetchError) {
             console.log(`❌ Public URL failed: ${publicUrl}`, fetchError.message);
@@ -135,8 +166,53 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 100) => {
     
     console.log('❌ No image found, returning null');
     // Trả về null để Avatar component có thể fallback về placeholder
-    imageCache.set(imagePath, null);
+    imageCache.set(cacheKey, null);
     return null;
+};
+
+// Helper function để thêm image optimization parameters
+const addImageOptimization = (url, sizeConfig) => {
+    // Nếu URL đã có query parameters, thêm vào
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}width=${sizeConfig.width}&height=${sizeConfig.height}&quality=${sizeConfig.quality}&format=webp`;
+};
+
+// Helper function để detect device type
+const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+// Optimized image loading với lazy loading
+export const loadOptimizedImage = async (imagePath, options = {}) => {
+    const { 
+        size = isMobileDevice() ? 'thumbnail' : 'full',
+        lazy = true,
+        fallback = null 
+    } = options;
+
+    try {
+        const imageUrl = await getUserImageSrc(imagePath, 'Image', size);
+        
+        if (!imageUrl) {
+            return fallback;
+        }
+
+        // Return image object with optimization info
+        return {
+            src: imageUrl,
+            alt: options.alt || 'Image',
+            loading: lazy ? 'lazy' : 'eager',
+            width: MOBILE_SIZES[size]?.width,
+            height: MOBILE_SIZES[size]?.height,
+            style: {
+                maxWidth: '100%',
+                height: 'auto'
+            }
+        };
+    } catch (error) {
+        console.error('Error loading optimized image:', error);
+        return fallback;
+    }
 };
 
 export const getSupabaseFileUrl = (filePath) => {
