@@ -41,23 +41,22 @@ const Avatar = ({
 
     useEffect(() => {
         const loadImageUrl = async () => {
-            console.log('Avatar useEffect - src:', src, 'name:', name);
 
             if (src && src.trim() !== '' && src !== 'null' && src !== 'undefined') {
                 setLoading(true);
                 setImageError(false);
 
                 try {
-                    console.log('🔍 Avatar calling getUserImageSrc with:', { src, name, size });
+
                     const url = await getUserImageSrc(src, name, size);
-                    console.log('✅ Avatar got URL:', url);
+
 
                     if (url) {
                         // Kiểm tra ảnh có load được không trước khi set
                         try {
                             const response = await fetch(url, { method: 'HEAD' });
                             if (response.ok) {
-                                console.log('Image URL verified:', url);
+
                                 setImageUrl(url);
                             } else {
                                 console.log('Image URL verification failed:', response.status);
@@ -79,7 +78,6 @@ const Avatar = ({
                     setLoading(false);
                 }
             } else {
-                console.log('No src provided, using placeholder');
                 setImageUrl(null);
                 setImageError(false);
             }
@@ -118,7 +116,6 @@ const Avatar = ({
                         setImageError(true);
                     }}
                     onLoad={() => {
-                        console.log('Image loaded successfully:', imageUrl);
                     }}
                     crossOrigin="anonymous"
                 />

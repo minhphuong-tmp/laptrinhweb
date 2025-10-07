@@ -75,7 +75,6 @@ export const getConversations = async (userId) => {
                     `)
                     .eq('conversation_id', item.conversation_id);
 
-                console.log('Conversation members:', members);
 
                 return {
                     ...item.conversation,

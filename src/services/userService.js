@@ -13,12 +13,10 @@ export const getUserData = async (userId) => {
         const { data: authData, error: authError } = await supabase.auth.getUser();
 
         if (userError) {
-            console.log('User data error:', userError);
             return { success: false, msg: userError?.message };
         }
 
         if (authError) {
-            console.log('Auth data error:', authError);
             return { success: false, msg: authError?.message };
         }
 
@@ -31,7 +29,6 @@ export const getUserData = async (userId) => {
             updated_at: authData.user?.updated_at
         };
 
-        console.log('Merged user data:', mergedData);
         return { success: true, data: mergedData };
     } catch (error) {
         console.log('got error: ', error);
@@ -161,7 +158,7 @@ export const getAllUsers = async (limit = 50, offset = 0) => {
         }
 
         console.log('All users data:', data);
-        
+
         // Đảm bảo có image field
         const processedUsers = (data || []).map(user => ({
             ...user,

@@ -45,6 +45,9 @@ const Header = ({ title = "LinkUp", showBackButton = true }) => {
                     <Link to="/todo" className="icon-link">
                         <span className="icon">📋</span>
                     </Link>
+                    <Link to="/notes" className="icon-link">
+                        <span className="icon">📄</span>
+                    </Link>
                     <Link to="/stats" className="icon-link">
                         <span className="icon">📊</span>
                     </Link>

@@ -76,7 +76,6 @@ const PostCard = ({
                     url: window.location.href,
                 });
             } catch (error) {
-                console.log('Share cancelled');
             }
         } else {
             // Fallback: copy to clipboard
@@ -151,11 +150,9 @@ const PostCard = ({
                                 alt="Post image"
                                 className="post-media"
                                 onError={(e) => {
-                                    console.log('❌ Image load error:', item.file);
                                     e.target.style.display = 'none';
                                 }}
                                 onLoad={() => {
-                                    console.log('✅ Image loaded:', item.file);
                                 }}
                             />
                         ) : item.file.includes('postVideos') || item.file.includes('.mp4') || item.file.includes('.mov') ? (
@@ -164,7 +161,6 @@ const PostCard = ({
                                 controls
                                 className="post-media post-video"
                                 onError={(e) => {
-                                    console.log('❌ Video load error:', item.file);
                                     e.target.style.display = 'none';
                                 }}
                             />

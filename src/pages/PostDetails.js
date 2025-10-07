@@ -154,9 +154,9 @@ const PostDetailsPage = () => {
                 <div className="comments-container">
                     <h3 className="comments-title">Bình luận ({post?.comments?.length || 0})</h3>
 
-                    {post?.comments?.map(comment => (
+                    {post?.comments?.map((comment, index) => (
                         <CommentItem
-                            key={comment?.id.toString()}
+                            key={`comment-${comment?.id}-${index}`}
                             item={comment}
                             onDelete={onDeleteComment}
                             canDelete={user?.id === comment?.userId || user?.id === post?.userId}

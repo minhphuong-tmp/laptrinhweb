@@ -40,7 +40,7 @@ const Profile = () => {
         setPostsLoading(true);
         try {
             const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-            
+
             // Load posts của user từ REST API
             const postsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/posts?userId=eq.${user.id}&order=created_at.desc&limit=${postsLimit}`;
             const postsResponse = await fetch(postsUrl, {
@@ -91,11 +91,11 @@ const Profile = () => {
                 const formattedPosts = await Promise.all(postsData.map(async (post) => {
                     const postLikes = likesData.filter(like => like.postId === post.id);
                     const postComments = commentsData.filter(comment => comment.postId === post.id);
-                    
+
                     // Xử lý HTML tags trong body
                     const cleanBody = post.body ? post.body.replace(/<[^>]*>/g, '') : '';
                     const title = cleanBody ? cleanBody.substring(0, 50) + (cleanBody.length > 50 ? '...' : '') : 'Không có tiêu đề';
-                    
+
                     // Xử lý ảnh từ trường file
                     let imageUrl = null;
                     if (post.file) {
@@ -169,7 +169,7 @@ const Profile = () => {
         setLoading(true);
         try {
             const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-            
+
             const updateUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/users?id=eq.${user.id}`;
             const response = await fetch(updateUrl, {
                 method: 'PATCH',
@@ -390,11 +390,11 @@ const Profile = () => {
                         </div>
                     ) : userPosts.length > 0 ? (
                         <div className="posts-grid">
-                            {userPosts.map((post) => (
-                                <div key={post.id} className="post-card">
+                            {userPosts.map((post, index) => (
+                                <div key={`post-${post.id}-${index}`} className="post-card">
                                     <div className="post-header">
                                         <div className="post-author">
-                                            <Avatar 
+                                            <Avatar
                                                 src={post.user?.image}
                                                 name={post.user?.name}
                                                 size={40}
@@ -411,12 +411,11 @@ const Profile = () => {
                                     </div>
 
                                     <div className="post-content">
-                                        <h3 className="post-title">{post.title}</h3>
                                         <p className="post-text">{post.content}</p>
                                         {post.image && (
                                             <div className="post-image">
-                                                <img 
-                                                    src={post.image} 
+                                                <img
+                                                    src={post.image}
                                                     alt={post.title}
                                                     loading="lazy"
                                                     onError={(e) => {

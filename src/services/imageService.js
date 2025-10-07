@@ -30,7 +30,6 @@ const checkBucketExists = async (bucketName) => {
             return bucketExists;
         }
     } catch (err) {
-        console.log(`❌ Error checking bucket ${bucketName}:`, err.message);
     }
 
     return false;
@@ -38,7 +37,6 @@ const checkBucketExists = async (bucketName) => {
 
 export const getUserImageSrc = async (imagePath, name = 'User', size = 'avatar') => {
     if (!imagePath) {
-        console.log('❌ No image path provided, using default');
         return '/images/defaultUser.png';
     }
 
@@ -62,7 +60,6 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 'avatar')
         cleanPath = imagePath.replace('profiles/', '');
     }
 
-    console.log(`🔍 Looking for image: ${cleanPath} (size: ${size})`);
 
     // Thử các bucket và thư mục con
     const searchPaths = [
@@ -77,34 +74,29 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 'avatar')
 
     for (const { bucket, path } of searchPaths) {
         try {
-            console.log(`🔍 Checking bucket: ${bucket}, path: ${path}`);
-
             // Kiểm tra bucket có tồn tại không trước (skip check cho upload bucket)
             if (bucket !== 'upload') {
                 const bucketExists = await checkBucketExists(bucket);
                 if (!bucketExists) {
-                    console.log(`❌ Bucket ${bucket} does not exist, skipping`);
                     continue;
                 }
             } else {
-                console.log(`✅ Skipping bucket check for upload bucket`);
             }
 
             // Thử public URL trước (nhanh nhất)
             const publicUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/public/${bucket}/${path}`;
-            
+
             // Test URL bằng fetch với timeout
             const testPromise = fetch(publicUrl, { method: 'HEAD' });
-            const timeoutPromise = new Promise((_, reject) => 
+            const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Timeout')), 5000)
             );
-            
+
             try {
                 const response = await Promise.race([testPromise, timeoutPromise]);
-                
+
                 if (response.ok) {
-                    console.log(`✅ Found image via public URL: ${bucket}/${path}`);
-                    
+
                     // Optimize URL for mobile if needed
                     let optimizedUrl = publicUrl;
                     if (size !== 'full' && MOBILE_SIZES[size]) {
@@ -134,8 +126,7 @@ export const getUserImageSrc = async (imagePath, name = 'User', size = 'avatar')
             if (signedResponse.ok) {
                 const signedData = await signedResponse.json();
                 if (signedData.signedURL) {
-                    console.log(`✅ Found image via signed URL: ${bucket}/${path}`);
-                    
+
                     // Optimize URL for mobile if needed
                     let optimizedUrl = signedData.signedURL;
                     if (size !== 'full' && MOBILE_SIZES[size]) {
@@ -254,7 +245,6 @@ export const debugSupabaseStorage = async () => {
 // Function để tạo bucket profiles nếu chưa có
 export const createProfilesBucket = async () => {
     try {
-        console.log('🔧 Creating profiles bucket...');
 
         const { data, error } = await supabase.storage.createBucket('profiles', {
             public: true,
@@ -282,10 +272,10 @@ export const uploadAvatar = async (file, userId) => {
 
         const fileName = `${userId}.png`;
         const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-        
+
         // Upload file bằng REST API
         const uploadUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/profiles/${fileName}`;
-        
+
         const uploadResponse = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
@@ -406,7 +396,6 @@ export const testLoadImage = async (imagePath) => {
                     .createSignedUrl(path, 3600);
 
                 if (!error && data) {
-                    console.log(`✅ Found image at: ${bucket}/${path}`);
                     console.log(`🔗 URL: ${data.signedUrl}`);
                     return { success: true, url: data.signedUrl, bucket, path };
                 } else {

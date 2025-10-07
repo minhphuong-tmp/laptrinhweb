@@ -4,9 +4,6 @@ import { getSupabaseFileUrl } from "./imageService";
 // Lấy bài viết của user với phân trang
 export const fetchPost = async (limit, userId) => {
     try {
-        console.log('🔍 Fetching posts for user:', userId);
-        console.log('📊 Limit:', limit);
-
         if (userId) {
             const { data, error } = await supabase
                 .from('posts')
@@ -20,28 +17,21 @@ export const fetchPost = async (limit, userId) => {
                 .eq('userId', userId)
                 .limit(limit);
 
-            console.log('📦 Raw data from Supabase:', data);
-            console.log('❌ Error from Supabase:', error);
-
             if (error) {
-                console.log('fetchPosts error:', error);
                 return { success: false, msg: 'Could not fetch the posts' };
             }
 
             // Xử lý file URL cho mỗi post
             const processedData = data.map(post => {
-                console.log('🔍 Processing post:', post.id, 'File:', post.file);
                 return {
                     ...post,
                     file: post.file ? getSupabaseFileUrl(post.file) : null
                 };
             });
 
-            console.log('✅ Processed data:', processedData);
             return { success: true, data: processedData };
         }
     } catch (error) {
-        console.log('fetchPost error:', error);
         return { success: false, msg: 'Could not fetchPost your post' };
     }
 }

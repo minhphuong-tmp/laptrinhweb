@@ -16,10 +16,6 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    console.log('AuthContext state:', {
-        user: user ? { id: user.id, email: user.email, name: user.name, image: user.image } : null,
-        loading
-    });
 
     // Helper function để tạo basic user object từ session
     const createBasicUserFromSession = (sessionUser) => {
@@ -43,13 +39,13 @@ export const AuthProvider = ({ children }) => {
                 setLoading(true);
                 // Kiểm tra session từ localStorage thay vì Supabase client
                 const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
-                
+
                 if (storedToken) {
                     try {
                         const authData = JSON.parse(storedToken);
                         if (authData?.user && authData?.access_token) {
                             const session = { user: authData.user };
-                            
+
                             // Tạo user object cơ bản từ session trước
                             const basicUser = createBasicUserFromSession(session.user);
 
@@ -57,15 +53,6 @@ export const AuthProvider = ({ children }) => {
                             setUser(basicUser);
                             setLoading(false);
 
-                            console.log('🎉 LOGIN SUCCESS - Basic user:', {
-                                id: basicUser.id,
-                                email: basicUser.email,
-                                name: basicUser.name,
-                                image: basicUser.image,
-                                bio: basicUser.bio,
-                                address: basicUser.address,
-                                phoneNumber: basicUser.phoneNumber
-                            });
 
                             // Sau đó thử lấy thông tin chi tiết từ database (async, không block)
                             try {
@@ -73,23 +60,11 @@ export const AuthProvider = ({ children }) => {
                                 if (userRes.success) {
                                     setUser(userRes.data);
 
-                                    console.log('🎉 LOGIN SUCCESS - Detailed user:', {
-                                        id: userRes.data.id,
-                                        email: userRes.data.email,
-                                        name: userRes.data.name,
-                                        image: userRes.data.image,
-                                        bio: userRes.data.bio,
-                                        address: userRes.data.address,
-                                        phoneNumber: userRes.data.phoneNumber,
-                                        created_at: userRes.data.created_at,
-                                        updated_at: userRes.data.updated_at
-                                    });
                                 }
                             } catch (error) {
                                 console.error('Error loading user data:', error);
                             }
                         } else {
-                            console.log('❌ Invalid stored token');
                             setUser(null);
                         }
                     } catch (parseError) {
@@ -97,11 +72,9 @@ export const AuthProvider = ({ children }) => {
                         setUser(null);
                     }
                 } else {
-                    console.log('No stored token found');
                     setUser(null);
                 }
             } catch (error) {
-                console.log('Check session error:', error);
                 setUser(null);
             } finally {
                 setLoading(false);
@@ -111,7 +84,6 @@ export const AuthProvider = ({ children }) => {
         checkSession();
 
         // Không cần onAuthStateChange với REST API approach
-        console.log('Using REST API approach - no auth state change listener needed');
 
         return () => {
             // Không cần unsubscribe với REST API approach
@@ -132,7 +104,7 @@ export const AuthProvider = ({ children }) => {
 
         try {
             const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-            
+
             const signInResponse = await fetch('https://oqtlakdvlmkaalymgrwd.supabase.co/auth/v1/token?grant_type=password', {
                 method: 'POST',
                 headers: {
@@ -152,7 +124,6 @@ export const AuthProvider = ({ children }) => {
             }
 
             const authData = await signInResponse.json();
-            console.log('✅ Sign in successful via REST API:', authData);
 
             // Lưu token vào localStorage
             localStorage.setItem('sb-oqtlakdvlmkaalymgrwd-auth-token', JSON.stringify(authData));
@@ -307,8 +278,7 @@ export const AuthProvider = ({ children }) => {
 
         try {
             const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
-            console.log('Stored token:', storedToken ? 'Present' : 'Not found');
-            
+
             if (storedToken) {
                 const authData = JSON.parse(storedToken);
                 console.log('Auth data:', authData);
@@ -316,8 +286,6 @@ export const AuthProvider = ({ children }) => {
                 console.log('Access token:', authData?.access_token ? 'Present' : 'Not found');
             }
 
-            console.log('LocalStorage Supabase keys:', Object.keys(localStorage).filter(key => key.startsWith('sb-')));
-            console.log('SessionStorage Supabase keys:', Object.keys(sessionStorage).filter(key => key.startsWith('sb-')));
         } catch (error) {
             console.error('Debug session error:', error);
         }

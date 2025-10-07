@@ -46,7 +46,6 @@ const Chat = () => {
         try {
             const result = await getMessages(id);
             if (result.success) {
-                console.log('Messages loaded:', result.data);
                 setMessages(result.data);
                 // Đánh dấu đã đọc
                 await markConversationAsRead(id, user.id);
@@ -127,12 +126,12 @@ const Chat = () => {
         const otherMember = conversation.conversation_members?.find(
             member => member.user_id !== user.id
         );
-        
+
         return (
-            <Avatar 
-                src={otherMember?.user?.image} 
-                name={otherMember?.user?.name || 'User'} 
-                size={40} 
+            <Avatar
+                src={otherMember?.user?.image}
+                name={otherMember?.user?.name || 'User'}
+                size={40}
             />
         );
     };

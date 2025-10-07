@@ -23,29 +23,23 @@ const Home = () => {
     const [submittingComment, setSubmittingComment] = useState({});
     const postsPerPage = 15;
 
-    console.log('Home component rendering with user:', user);
 
     useEffect(() => {
-        console.log('useEffect triggered - currentPage:', currentPage);
-        
+
         // Tránh multiple loads
         if (isLoadingPosts) {
-            console.log('Already loading posts, skipping...');
             return;
         }
-        
+
         const loadPosts = async () => {
             setIsLoadingPosts(true);
             try {
-                console.log('=== BẮT ĐẦU LOAD POSTS ===');
-                
-                    // Load posts từ REST API với phân trang
-                    console.log('=== LOADING POSTS FROM REST API ===');
-                    try {
-                        const offset = (currentPage - 1) * postsPerPage;
-                        const postsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/posts?limit=${postsPerPage}&offset=${offset}&order=created_at.desc`;
-                        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-                    
+                // Load posts từ REST API với phân trang
+                try {
+                    const offset = (currentPage - 1) * postsPerPage;
+                    const postsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/posts?limit=${postsPerPage}&offset=${offset}&order=created_at.desc`;
+                    const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+
                     const response = await fetch(postsUrl, {
                         method: 'GET',
                         headers: {
@@ -54,12 +48,10 @@ const Home = () => {
                             'Content-Type': 'application/json'
                         }
                     });
-                    
+
                     if (response.ok) {
                         const postsData = await response.json();
-                        console.log('✅ Posts loaded successfully!');
-                        console.log('Posts count:', postsData.length);
-                        
+
                         // Lấy tổng số posts để tính totalPages
                         const countUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/posts?select=count';
                         const countResponse = await fetch(countUrl, {
@@ -70,7 +62,7 @@ const Home = () => {
                                 'Content-Type': 'application/json'
                             }
                         });
-                        
+
                         let totalCount = 0;
                         if (countResponse.ok) {
                             const countHeader = countResponse.headers.get('content-range');
@@ -81,11 +73,10 @@ const Home = () => {
                                 }
                             }
                         }
-                        
+
                         const calculatedTotalPages = Math.ceil(totalCount / postsPerPage);
                         setTotalPages(calculatedTotalPages);
-                        console.log(`Total posts: ${totalCount}, Total pages: ${calculatedTotalPages}`);
-                        
+
                         // Load users để map với posts
                         const usersUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/users';
                         const usersResponse = await fetch(usersUrl, {
@@ -96,13 +87,12 @@ const Home = () => {
                                 'Content-Type': 'application/json'
                             }
                         });
-                        
+
                         let usersData = [];
                         if (usersResponse.ok) {
                             usersData = await usersResponse.json();
-                            console.log('✅ Users loaded successfully!');
                         }
-                        
+
                         // Load likes cho tất cả posts
                         const likesUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes';
                         const likesResponse = await fetch(likesUrl, {
@@ -113,13 +103,12 @@ const Home = () => {
                                 'Content-Type': 'application/json'
                             }
                         });
-                        
+
                         let likesData = [];
                         if (likesResponse.ok) {
                             likesData = await likesResponse.json();
-                            console.log('✅ Likes loaded successfully!');
                         }
-                        
+
                         // Load comments count cho tất cả posts
                         const commentsUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/comments';
                         const commentsResponse = await fetch(commentsUrl, {
@@ -130,29 +119,26 @@ const Home = () => {
                                 'Content-Type': 'application/json'
                             }
                         });
-                        
+
                         let commentsData = [];
                         if (commentsResponse.ok) {
                             commentsData = await commentsResponse.json();
-                            console.log('✅ Comments loaded successfully!');
                         }
-                        
+
                         // Chuyển đổi dữ liệu posts thành format phù hợp
                         const formattedPosts = await Promise.all(postsData.map(async (post) => {
                             const postUser = usersData.find(u => u.id === post.userId);
                             const postLikes = likesData.filter(like => like.postId === post.id);
                             const postComments = commentsData.filter(comment => comment.postId === post.id);
                             const isLiked = user ? postLikes.some(like => like.userId === user.id) : false;
-                            console.log(`Post ${post.id}: isLiked = ${isLiked}, user.id = ${user?.id}, postLikes =`, postLikes.map(l => l.userId));
-                            
+
                             // Xử lý HTML tags trong body
                             const cleanBody = post.body ? post.body.replace(/<[^>]*>/g, '') : '';
                             const title = cleanBody ? cleanBody.substring(0, 50) + (cleanBody.length > 50 ? '...' : '') : 'Không có tiêu đề';
-                            
+
                             // Xử lý ảnh từ trường file
                             let imageUrl = null;
                             if (post.file) {
-                                console.log('Processing post file:', post.file);
                                 // Nếu file đã là URL đầy đủ, sử dụng trực tiếp
                                 if (post.file.startsWith('http')) {
                                     imageUrl = post.file;
@@ -160,21 +146,19 @@ const Home = () => {
                                     // Nếu chỉ là tên file, tạo URL public
                                     imageUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/public/upload/${post.file}`;
                                 }
-                                console.log('Image URL generated:', imageUrl);
                             } else {
-                                console.log('No file for post:', post.id);
                             }
-                            
-                                    return {
-                                        ...post,
-                                        title: title,
-                                        content: cleanBody || 'Không có nội dung',
-                                        image: imageUrl,
-                                        user: { 
-                                            id: post.userId || 'unknown', 
-                                            name: postUser?.name || 'Unknown User', 
-                                            image: postUser?.image || null 
-                                        },
+
+                            return {
+                                ...post,
+                                title: title,
+                                content: cleanBody || 'Không có nội dung',
+                                image: imageUrl,
+                                user: {
+                                    id: post.userId || 'unknown',
+                                    name: postUser?.name || 'Unknown User',
+                                    image: postUser?.image || null
+                                },
                                 postLikes: postLikes,
                                 comments: [{ count: postComments.length }],
                                 is_liked: isLiked,
@@ -182,15 +166,14 @@ const Home = () => {
                                 comments_count: postComments.length
                             };
                         }));
-                        
+
                         // Append posts thay vì replace
                         if (currentPage === 1) {
                             setPosts(formattedPosts);
                         } else {
                             setPosts(prevPosts => [...prevPosts, ...formattedPosts]);
                         }
-                        console.log('✅ Posts formatted and set!');
-                        
+
                         // Kiểm tra còn posts không
                         setHasMorePosts(formattedPosts.length === postsPerPage);
                     } else {
@@ -199,14 +182,13 @@ const Home = () => {
                 } catch (error) {
                     console.error('❌ Error loading posts:', error);
                 }
-                
+
             } catch (error) {
                 console.error('❌ Error loading posts:', error);
                 setPosts([]);
             } finally {
                 setLoading(false);
                 setIsLoadingPosts(false);
-                console.log('=== KẾT THÚC LOAD POSTS ===');
             }
         };
 
@@ -227,7 +209,6 @@ const Home = () => {
 
     const loadMorePosts = () => {
         if (!isLoadingPosts && hasMorePosts) {
-            console.log('Loading more posts...');
             setCurrentPage(prev => prev + 1);
         }
     };
@@ -259,11 +240,11 @@ const Home = () => {
 
     const handleLike = async (postId) => {
         if (liking) return;
-        
+
         setLiking(postId);
         try {
             const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-            
+
             // Kiểm tra xem user đã like post này chưa
             const checkLikeUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes?postId=eq.${postId}&userId=eq.${user.id}`;
             const checkResponse = await fetch(checkLikeUrl, {
@@ -274,10 +255,10 @@ const Home = () => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (checkResponse.ok) {
                 const existingLikes = await checkResponse.json();
-                
+
                 if (existingLikes.length > 0) {
                     // Unlike - xóa like
                     const deleteUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes?id=eq.${existingLikes[0].id}`;
@@ -289,11 +270,10 @@ const Home = () => {
                             'Content-Type': 'application/json'
                         }
                     });
-                    
+
                     if (deleteResponse.ok) {
-                        console.log('✅ Unlike successful');
                         // Real-time update UI
-                        setPosts(prevPosts => 
+                        setPosts(prevPosts =>
                             prevPosts.map(post => {
                                 if (post.id === postId) {
                                     return {
@@ -322,11 +302,10 @@ const Home = () => {
                             userId: user.id
                         })
                     });
-                    
+
                     if (addResponse.ok) {
-                        console.log('✅ Like successful');
                         // Real-time update UI
-                        setPosts(prevPosts => 
+                        setPosts(prevPosts =>
                             prevPosts.map(post => {
                                 if (post.id === postId) {
                                     return {
@@ -358,12 +337,12 @@ const Home = () => {
 
         // Mở comments và load nếu chưa có
         setShowComments(prev => ({ ...prev, [postId]: true }));
-        
+
         if (!comments[postId]) {
             setLoadingComments(prev => ({ ...prev, [postId]: true }));
             try {
                 const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-                
+
                 // Load comments với user info
                 const commentsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/comments?postId=eq.${postId}&order=created_at.asc`;
                 const commentsResponse = await fetch(commentsUrl, {
@@ -377,8 +356,7 @@ const Home = () => {
 
                 if (commentsResponse.ok) {
                     const commentsData = await commentsResponse.json();
-                    console.log('Raw comments from API:', commentsData);
-                    
+
                     // Load users để map với comments
                     const usersUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/users';
                     const usersResponse = await fetch(usersUrl, {
@@ -398,7 +376,6 @@ const Home = () => {
                     // Format comments với user info
                     const formattedComments = commentsData.map(comment => {
                         const user = usersData.find(u => u.id === comment.userId);
-                        console.log('Raw comment data:', comment);
                         return {
                             ...comment,
                             content: comment.content || comment.body || comment.text || 'Không có nội dung',
@@ -411,9 +388,7 @@ const Home = () => {
                     });
 
                     setComments(prev => ({ ...prev, [postId]: formattedComments }));
-                    console.log('✅ Comments loaded for post:', postId, formattedComments.length);
-                    console.log('Comments data:', formattedComments);
-                    
+
                     // Test: Thêm comment giả để test hiển thị
                     if (formattedComments.length === 0) {
                         const testComment = {
@@ -429,7 +404,6 @@ const Home = () => {
                             }
                         };
                         setComments(prev => ({ ...prev, [postId]: [testComment] }));
-                        console.log('✅ Added test comment for post:', postId);
                     }
                 }
             } catch (error) {
@@ -442,7 +416,7 @@ const Home = () => {
 
     const handleCommentChange = (postId, value) => {
         setNewComment(prev => ({ ...prev, [postId]: value }));
-        
+
         // Auto-resize textarea
         const textarea = document.querySelector(`textarea[data-post-id="${postId}"]`);
         if (textarea) {
@@ -453,33 +427,28 @@ const Home = () => {
 
     const handleSubmitComment = async (postId) => {
         const commentText = newComment[postId]?.trim();
-        console.log('🚀 Submitting comment for post:', postId, 'Text:', commentText, 'User:', user?.id);
-        
+
         if (!commentText || !user) {
-            console.log('❌ Cannot submit: no text or no user');
             return;
         }
 
         setSubmittingComment(prev => ({ ...prev, [postId]: true }));
-        console.log('⏳ Setting submitting state to true');
-        
+
         try {
             const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-            
+
             // Lấy access token từ localStorage
             const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
             let accessToken = apiKey; // fallback
-            
+
             if (storedToken) {
                 try {
                     const authData = JSON.parse(storedToken);
                     accessToken = authData.access_token || apiKey;
-                    console.log('🔑 Using access token:', accessToken.substring(0, 20) + '...');
                 } catch (e) {
-                    console.log('⚠️ Could not parse stored token, using API key');
                 }
             }
-            
+
             const commentUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/comments';
             const response = await fetch(commentUrl, {
                 method: 'POST',
@@ -497,12 +466,9 @@ const Home = () => {
                 })
             });
 
-            console.log('📡 API Response status:', response.status);
-            console.log('📡 API Response headers:', Object.fromEntries(response.headers.entries()));
 
             if (response.ok) {
-                console.log('✅ Comment submitted successfully');
-                
+
                 // Test: Kiểm tra xem comment có thực sự được lưu không
                 setTimeout(async () => {
                     try {
@@ -514,16 +480,15 @@ const Home = () => {
                                 'Content-Type': 'application/json'
                             }
                         });
-                        
+
                         if (testResponse.ok) {
                             const testData = await testResponse.json();
-                            console.log('🔍 Latest comment in DB:', testData);
                         }
                     } catch (testError) {
                         console.error('❌ Test query failed:', testError);
                     }
                 }, 2000);
-                
+
                 // Tạo comment mới để thêm vào UI ngay lập tức
                 const newCommentData = {
                     id: 'temp-' + Date.now(),
@@ -538,7 +503,6 @@ const Home = () => {
                     }
                 };
 
-                console.log('📝 Adding comment to UI:', newCommentData);
 
                 // Cập nhật comments state với hiệu ứng
                 setComments(prev => ({
@@ -547,7 +511,7 @@ const Home = () => {
                 }));
 
                 // Cập nhật comments count trong posts
-                setPosts(prevPosts => 
+                setPosts(prevPosts =>
                     prevPosts.map(post => {
                         if (post.id === postId) {
                             return {
@@ -559,7 +523,6 @@ const Home = () => {
                     })
                 );
 
-                console.log('✅ Comment added to UI successfully');
 
                 // Hiển thị thông báo thành công
                 const successMessage = document.createElement('div');
@@ -579,7 +542,7 @@ const Home = () => {
                     animation: slideInNotification 0.3s ease-out;
                 `;
                 document.body.appendChild(successMessage);
-                
+
                 // Xóa thông báo sau 2 giây
                 setTimeout(() => {
                     successMessage.remove();
@@ -587,18 +550,16 @@ const Home = () => {
 
                 // Xóa input
                 setNewComment(prev => ({ ...prev, [postId]: '' }));
-                console.log('🧹 Cleared input');
-                
+
                 // Đóng khung bình luận sau khi gửi thành công
                 setTimeout(() => {
                     setShowComments(prev => ({ ...prev, [postId]: false }));
-                    console.log('🚪 Closed comment section');
                 }, 1000); // Đóng sau 1 giây để user thấy comment xuất hiện
             } else {
                 const errorText = await response.text();
                 console.error('❌ Failed to submit comment:', response.status, response.statusText);
                 console.error('❌ Error details:', errorText);
-                
+
                 // Hiển thị thông báo lỗi
                 const errorMessage = document.createElement('div');
                 errorMessage.textContent = '❌ Lỗi khi gửi bình luận!';
@@ -616,7 +577,7 @@ const Home = () => {
                     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 `;
                 document.body.appendChild(errorMessage);
-                
+
                 setTimeout(() => {
                     errorMessage.remove();
                 }, 3000);
@@ -654,12 +615,12 @@ const Home = () => {
                 <div className="header-actions">
                     <Link to="/posts" className="create-post-button">
                         ✏️ Tạo bài viết
-                </Link>
-                <button 
+                    </Link>
+                    <button
                         className="logout-button"
-                    onClick={handleSignOut}
-                >
-                    🚪 Đăng xuất
+                        onClick={handleSignOut}
+                    >
+                        🚪 Đăng xuất
                     </button>
                 </div>
             </header>
@@ -679,7 +640,7 @@ const Home = () => {
                         <div key={post.id} className="post-card">
                             <div className="post-header">
                                 <div className="post-author">
-                                    <Avatar 
+                                    <Avatar
                                         src={post.user?.image}
                                         name={post.user?.name}
                                         size={40}
@@ -696,20 +657,17 @@ const Home = () => {
                             </div>
 
                             <div className="post-content">
-                                <h3 className="post-title">{post.title}</h3>
                                 <p className="post-text">{post.content}</p>
                                 {post.image && (
                                     <div className="post-image">
-                                        <img 
-                                            src={post.image} 
+                                        <img
+                                            src={post.image}
                                             alt={post.title}
                                             loading="lazy"
                                             onError={(e) => {
-                                                console.log('Image load error for:', post.image);
                                                 e.target.style.display = 'none';
                                             }}
                                             onLoad={() => {
-                                                console.log('Image loaded successfully:', post.image);
                                             }}
                                         />
                                     </div>
@@ -725,14 +683,14 @@ const Home = () => {
                                     {liking === post.id ? '⏳' : post.is_liked ? '❤️' : '🤍'}
                                     <span>{post.likes_count || 0}</span>
                                 </button>
-                                
-                                <button 
+
+                                <button
                                     className="action-button comment-button"
                                     onClick={() => handleShowComments(post.id)}
                                 >
                                     💬 <span>{post.comments_count || 0}</span>
                                 </button>
-                                
+
                                 <button className="action-button share-button">
                                     📤 Chia sẻ
                                 </button>
@@ -744,11 +702,11 @@ const Home = () => {
                                     <div className="comments-header">
                                         <h4>Bình luận ({post.comments_count || 0})</h4>
                                     </div>
-                                    
+
                                     {/* Comment Input */}
                                     <div className="comment-input-section">
                                         <div className="comment-input-header">
-                                            <Avatar 
+                                            <Avatar
                                                 src={user?.image}
                                                 name={user?.name}
                                                 size={30}
@@ -780,7 +738,7 @@ const Home = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {loadingComments[post.id] ? (
                                         <div className="loading-comments">
                                             <div className="loading-spinner">⏳</div>
@@ -788,11 +746,10 @@ const Home = () => {
                                         </div>
                                     ) : comments[post.id] && comments[post.id].length > 0 ? (
                                         <div className="comments-list">
-                                            {console.log('Rendering comments for post:', post.id, comments[post.id])}
-                                            {comments[post.id].map((comment) => (
-                                                <div key={comment.id} className="comment-item">
+                                            {comments[post.id].map((comment, index) => (
+                                                <div key={`comment-${comment.id}-${index}`} className="comment-item">
                                                     <div className="comment-author">
-                                                        <Avatar 
+                                                        <Avatar
                                                             src={comment.user?.image}
                                                             name={comment.user?.name}
                                                             size={30}
@@ -808,7 +765,6 @@ const Home = () => {
                                                     </div>
                                                     <div className="comment-content">
                                                         <p>{comment.content || comment.body || comment.text || 'Không có nội dung'}</p>
-                                                        {console.log('Comment content:', comment.content, 'Comment body:', comment.body, 'Comment text:', comment.text)}
                                                     </div>
                                                 </div>
                                             ))}
@@ -832,7 +788,7 @@ const Home = () => {
                     <p>Đang tải thêm bài viết...</p>
                 </div>
             )}
-            
+
             {/* End of posts indicator */}
             {!hasMorePosts && posts.length > 0 && (
                 <div className="end-of-posts">
