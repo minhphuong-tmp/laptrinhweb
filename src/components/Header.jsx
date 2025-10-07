@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Header.css';
 
 const Header = ({ title = "LinkUp", showBackButton = true }) => {
     const { signOut } = useAuth();
+    const navigate = useNavigate();
 
     const handleBack = () => {
         window.history.back();
@@ -12,9 +13,12 @@ const Header = ({ title = "LinkUp", showBackButton = true }) => {
     const handleSignOut = async () => {
         if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
             try {
-                const { error } = await signOut();
-                if (error) {
-                    console.error('Sign out error:', error);
+                const result = await signOut();
+                if (result.success) {
+                    // Navigate to login page after successful logout
+                    navigate('/login', { replace: true });
+                } else {
+                    console.error('Sign out error:', result.error);
                     alert('Lỗi khi đăng xuất');
                 }
             } catch (error) {
@@ -33,7 +37,7 @@ const Header = ({ title = "LinkUp", showBackButton = true }) => {
                     </button>
                 )}
                 <h1 className="header-title">{title}</h1>
-                
+
                 <div className="header-icons">
                     <Link to="/posts" className="icon-link">
                         <span className="icon">📝</span>
@@ -53,7 +57,7 @@ const Header = ({ title = "LinkUp", showBackButton = true }) => {
                     <Link to="/profile" className="icon-link">
                         <span className="icon">👤</span>
                     </Link>
-                    <button 
+                    <button
                         className="icon-link logout-btn"
                         onClick={handleSignOut}
                         title="Đăng xuất"

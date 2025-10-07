@@ -1,249 +1,134 @@
 import { supabase } from "../lib/supabase";
 
-// ===== POSTS SERVICE =====
-export const createPost = async (postData) => {
+// Lấy bài viết của user cụ thể với phân trang
+export const fetchUserPosts = async (limit, userId) => {
     try {
-        const { data, error } = await supabase
-            .from('posts')
-            .insert(postData)
-            .select(`
-                *,
-                users:user_id (
-                    id,
-                    name,
-                    image
-                )
-            `)
-            .single();
-
-        if (error) {
-            console.log('createPost error:', error);
-            return { success: false, msg: 'Không thể tạo bài viết' };
+        if (!userId) {
+            return { success: false, msg: 'User ID is required' };
         }
 
-        return { success: true, data };
+        const { data, error } = await supabase
+            .from('posts')
+            .select(`
+                *,
+                user:users(id,name,image),
+                postLikes(*),
+                comments(count)
+            `)
+            .order('created_at', { ascending: false })
+            .eq('userId', userId)
+            .limit(limit);
+
+        if (error) {
+            console.log('fetchUserPosts error:', error);
+            return { success: false, msg: 'Could not fetch the posts' };
+        }
+
+        return { success: true, data: data || [] };
     } catch (error) {
-        console.log('createPost error:', error);
-        return { success: false, msg: 'Không thể tạo bài viết' };
+        console.log('fetchUserPosts error:', error);
+        return { success: false, msg: 'Could not fetch user posts' };
     }
 };
 
-export const getPosts = async (limit = 20, offset = 0) => {
+// Lấy tất cả bài viết với phân trang
+export const fetchAllPosts = async (limit, offset = 0) => {
     try {
         const { data, error } = await supabase
             .from('posts')
             .select(`
                 *,
-                users:user_id (
-                    id,
-                    name,
-                    image
-                ),
-                post_likes (
-                    id,
-                    user_id
-                ),
-                comments (
-                    id,
-                    content,
-                    user_id,
-                    created_at,
-                    users:user_id (
-                        id,
-                        name,
-                        image
-                    )
-                )
+                user:users(id,name,image),
+                postLikes(*),
+                comments(count)
             `)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
 
         if (error) {
-            console.log('getPosts error:', error);
-            return { success: false, msg: 'Không thể lấy danh sách bài viết' };
+            console.log('fetchAllPosts error:', error);
+            return { success: false, msg: 'Could not fetch the posts' };
         }
 
-        // Process posts to add like counts and comment counts
-        const processedPosts = data.map(post => ({
-            ...post,
-            likes_count: post.post_likes?.length || 0,
-            comments_count: post.comments?.length || 0,
-            is_liked: false // Will be set based on current user
-        }));
-
-        return { success: true, data: processedPosts };
+        return { success: true, data: data || [] };
     } catch (error) {
-        console.log('getPosts error:', error);
-        return { success: false, msg: 'Không thể lấy danh sách bài viết' };
+        console.log('fetchAllPosts error:', error);
+        return { success: false, msg: 'Could not fetch posts' };
     }
 };
 
-export const getUserPosts = async (userId) => {
+// Lấy thông tin chi tiết của một bài viết
+export const fetchPostById = async (postId) => {
     try {
         const { data, error } = await supabase
             .from('posts')
             .select(`
                 *,
-                users:user_id (
-                    id,
-                    name,
-                    image
-                ),
-                post_likes (
-                    id,
-                    user_id
-                ),
-                comments (
-                    id,
-                    content,
-                    user_id,
-                    created_at,
-                    users:user_id (
-                        id,
-                        name,
-                        image
-                    )
-                )
+                user:users(id,name,image),
+                postLikes(*),
+                comments(*)
             `)
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.log('getUserPosts error:', error);
-            return { success: false, msg: 'Không thể lấy bài viết của người dùng' };
-        }
-
-        const processedPosts = data.map(post => ({
-            ...post,
-            likes_count: post.post_likes?.length || 0,
-            comments_count: post.comments?.length || 0
-        }));
-
-        return { success: true, data: processedPosts };
-    } catch (error) {
-        console.log('getUserPosts error:', error);
-        return { success: false, msg: 'Không thể lấy bài viết của người dùng' };
-    }
-};
-
-export const likePost = async (postId, userId) => {
-    try {
-        // Check if already liked
-        const { data: existingLike } = await supabase
-            .from('post_likes')
-            .select('id')
-            .eq('post_id', postId)
-            .eq('user_id', userId)
-            .single();
-
-        if (existingLike) {
-            // Unlike the post
-            const { error } = await supabase
-                .from('post_likes')
-                .delete()
-                .eq('post_id', postId)
-                .eq('user_id', userId);
-
-            if (error) {
-                console.log('unlikePost error:', error);
-                return { success: false, msg: 'Không thể bỏ thích bài viết' };
-            }
-
-            return { success: true, action: 'unliked' };
-        } else {
-            // Like the post
-            const { error } = await supabase
-                .from('post_likes')
-                .insert({
-                    post_id: postId,
-                    user_id: userId
-                });
-
-            if (error) {
-                console.log('likePost error:', error);
-                return { success: false, msg: 'Không thể thích bài viết' };
-            }
-
-            return { success: true, action: 'liked' };
-        }
-    } catch (error) {
-        console.log('likePost error:', error);
-        return { success: false, msg: 'Không thể thích bài viết' };
-    }
-};
-
-export const addComment = async (commentData) => {
-    try {
-        const { data, error } = await supabase
-            .from('comments')
-            .insert(commentData)
-            .select(`
-                *,
-                users:user_id (
-                    id,
-                    name,
-                    image
-                )
-            `)
-            .single();
-
-        if (error) {
-            console.log('addComment error:', error);
-            return { success: false, msg: 'Không thể thêm bình luận' };
-        }
-
-        return { success: true, data };
-    } catch (error) {
-        console.log('addComment error:', error);
-        return { success: false, msg: 'Không thể thêm bình luận' };
-    }
-};
-
-export const getPostComments = async (postId) => {
-    try {
-        const { data, error } = await supabase
-            .from('comments')
-            .select(`
-                *,
-                users:user_id (
-                    id,
-                    name,
-                    image
-                )
-            `)
-            .eq('post_id', postId)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.log('getPostComments error:', error);
-            return { success: false, msg: 'Không thể lấy bình luận' };
-        }
-
-        return { success: true, data };
-    } catch (error) {
-        console.log('getPostComments error:', error);
-        return { success: false, msg: 'Không thể lấy bình luận' };
-    }
-};
-
-export const deletePost = async (postId, userId) => {
-    try {
-        // Check if user owns the post
-        const { data: post } = await supabase
-            .from('posts')
-            .select('user_id')
             .eq('id', postId)
             .single();
 
-        if (!post || post.user_id !== userId) {
-            return { success: false, msg: 'Bạn không có quyền xóa bài viết này' };
+        if (error) {
+            console.log('fetchPostById error:', error);
+            return { success: false, msg: 'Could not fetch the post' };
         }
 
-        // Delete related data first
-        await supabase.from('post_likes').delete().eq('post_id', postId);
-        await supabase.from('comments').delete().eq('post_id', postId);
+        return { success: true, data };
+    } catch (error) {
+        console.log('fetchPostById error:', error);
+        return { success: false, msg: 'Could not fetch post' };
+    }
+};
 
-        // Delete the post
+// Tạo bài viết mới
+export const createPost = async (postData) => {
+    try {
+        const { data, error } = await supabase
+            .from('posts')
+            .insert([postData])
+            .select()
+            .single();
+
+        if (error) {
+            console.log('createPost error:', error);
+            return { success: false, msg: 'Could not create the post' };
+        }
+
+        return { success: true, data };
+    } catch (error) {
+        console.log('createPost error:', error);
+        return { success: false, msg: 'Could not create post' };
+    }
+};
+
+// Cập nhật bài viết
+export const updatePost = async (postId, updateData) => {
+    try {
+        const { data, error } = await supabase
+            .from('posts')
+            .update(updateData)
+            .eq('id', postId)
+            .select()
+            .single();
+
+        if (error) {
+            console.log('updatePost error:', error);
+            return { success: false, msg: 'Could not update the post' };
+        }
+
+        return { success: true, data };
+    } catch (error) {
+        console.log('updatePost error:', error);
+        return { success: false, msg: 'Could not update post' };
+    }
+};
+
+// Xóa bài viết
+export const deletePost = async (postId) => {
+    try {
         const { error } = await supabase
             .from('posts')
             .delete()
@@ -251,48 +136,66 @@ export const deletePost = async (postId, userId) => {
 
         if (error) {
             console.log('deletePost error:', error);
-            return { success: false, msg: 'Không thể xóa bài viết' };
+            return { success: false, msg: 'Could not delete the post' };
         }
 
         return { success: true };
     } catch (error) {
         console.log('deletePost error:', error);
-        return { success: false, msg: 'Không thể xóa bài viết' };
+        return { success: false, msg: 'Could not delete post' };
     }
 };
 
-// ===== REALTIME SUBSCRIPTIONS =====
-export const subscribeToPosts = (callback) => {
-    const channel = supabase
-        .channel('posts-changes')
-        .on('postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'posts'
-            },
-            callback
-        )
-        .on('postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'post_likes'
-            },
-            callback
-        )
-        .on('postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'comments'
-            },
-            callback
-        )
-        .subscribe();
+// Like/Unlike bài viết
+export const togglePostLike = async (postId, userId) => {
+    try {
+        // Kiểm tra xem user đã like chưa
+        const { data: existingLike, error: checkError } = await supabase
+            .from('postLikes')
+            .select('id')
+            .eq('postId', postId)
+            .eq('userId', userId)
+            .single();
 
-    return () => {
-        supabase.removeChannel(channel);
-    };
+        if (checkError && checkError.code !== 'PGRST116') {
+            console.log('togglePostLike check error:', checkError);
+            return { success: false, msg: 'Could not check like status' };
+        }
+
+        if (existingLike) {
+            // Unlike
+            const { error } = await supabase
+                .from('postLikes')
+                .delete()
+                .eq('id', existingLike.id);
+
+            if (error) {
+                console.log('unlike error:', error);
+                return { success: false, msg: 'Could not unlike the post' };
+            }
+        } else {
+            // Like
+            const { error } = await supabase
+                .from('postLikes')
+                .insert([{ postId, userId }]);
+
+            if (error) {
+                console.log('like error:', error);
+                return { success: false, msg: 'Could not like the post' };
+            }
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.log('togglePostLike error:', error);
+        return { success: false, msg: 'Could not toggle like' };
+    }
 };
 
+// Lấy URL file từ Supabase Storage
+export const getSupabaseFileUrl = (filePath) => {
+    if (!filePath) return null;
+
+    const supabaseUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co';
+    return `${supabaseUrl}/storage/v1/object/public/${filePath}`;
+};

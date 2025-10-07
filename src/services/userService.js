@@ -2,17 +2,37 @@ import { supabase } from "../lib/supabase";
 
 export const getUserData = async (userId) => {
     try {
-        const { data, error } = await supabase
+        // Lấy dữ liệu từ bảng users tùy chỉnh
+        const { data: userData, error: userError } = await supabase
             .from('users')
             .select()
             .eq('id', userId)
             .single();
 
-        if (error) {
-            return { success: false, msg: error?.message };
+        // Lấy dữ liệu từ Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+
+        if (userError) {
+            console.log('User data error:', userError);
+            return { success: false, msg: userError?.message };
         }
 
-        return { success: true, data };
+        if (authError) {
+            console.log('Auth data error:', authError);
+            return { success: false, msg: authError?.message };
+        }
+
+        // Merge dữ liệu từ cả hai nguồn
+        const mergedData = {
+            ...userData,
+            email: authData.user?.email || userData.email, // Ưu tiên email từ auth
+            email_confirmed_at: authData.user?.email_confirmed_at,
+            created_at: authData.user?.created_at,
+            updated_at: authData.user?.updated_at
+        };
+
+        console.log('Merged user data:', mergedData);
+        return { success: true, data: mergedData };
     } catch (error) {
         console.log('got error: ', error);
         return { success: false, msg: error.message };
@@ -37,22 +57,139 @@ export const updateUser = async (userId, data) => {
     }
 };
 
-export const getAllUsers = async () => {
+export const createUser = async (userData) => {
     try {
         const { data, error } = await supabase
             .from('users')
-            .select('id, name, image, email')
-            .order('name');
+            .insert([userData])
+            .select()
+            .single();
 
         if (error) {
-            console.log('getAllUsers error:', error);
-            return { success: false, msg: 'Không thể lấy danh sách người dùng' };
+            return { success: false, msg: error?.message };
         }
 
         return { success: true, data };
     } catch (error) {
-        console.log('getAllUsers error:', error);
-        return { success: false, msg: 'Không thể lấy danh sách người dùng' };
+        console.log('got error: ', error);
+        return { success: false, msg: error.message };
     }
 };
 
+export const deleteUser = async (userId) => {
+    try {
+        const { error } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', userId);
+
+        if (error) {
+            return { success: false, msg: error?.message };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.log('got error: ', error);
+        return { success: false, msg: error.message };
+    }
+};
+
+// Helper function để check user có tồn tại không
+export const checkUserExists = async (userId) => {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', userId)
+            .single();
+
+        if (error) {
+            return { success: false, exists: false };
+        }
+
+        return { success: true, exists: !!data };
+    } catch (error) {
+        console.log('got error: ', error);
+        return { success: false, exists: false };
+    }
+};
+
+// Helper function để sync user data với auth
+export const syncUserWithAuth = async (userId) => {
+    try {
+        const userRes = await getUserData(userId);
+        if (userRes.success) {
+            return userRes;
+        } else {
+            // Nếu không lấy được từ database, tạo user mới
+            const { data: authData } = await supabase.auth.getUser();
+            if (authData.user) {
+                const newUserData = {
+                    id: authData.user.id,
+                    email: authData.user.email,
+                    name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
+                    image: authData.user.user_metadata?.avatar_url || null,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+
+                const createRes = await createUser(newUserData);
+                if (createRes.success) {
+                    return { success: true, data: createRes.data };
+                }
+            }
+            return { success: false, msg: 'Failed to sync user data' };
+        }
+    } catch (error) {
+        console.log('got error: ', error);
+        return { success: false, msg: error.message };
+    }
+};
+
+// Lấy tất cả users (cho chat, search, etc.)
+export const getAllUsers = async (limit = 50, offset = 0) => {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, name, email, image, bio, created_at')
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+        if (error) {
+            console.log('getAllUsers error:', error);
+            return { success: false, msg: error?.message };
+        }
+
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.log('got error: ', error);
+        return { success: false, msg: error.message };
+    }
+};
+
+// Tìm kiếm users theo tên hoặc email
+export const searchUsers = async (query, limit = 20) => {
+    try {
+        if (!query || query.trim().length < 2) {
+            return { success: true, data: [] };
+        }
+
+        const searchTerm = `%${query.trim()}%`;
+
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, name, email, image, bio')
+            .or(`name.ilike.${searchTerm},email.ilike.${searchTerm}`)
+            .limit(limit);
+
+        if (error) {
+            console.log('searchUsers error:', error);
+            return { success: false, msg: error?.message };
+        }
+
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.log('got error: ', error);
+        return { success: false, msg: error.message };
+    }
+};

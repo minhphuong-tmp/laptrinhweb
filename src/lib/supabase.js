@@ -36,7 +36,7 @@ const testConnection = async () => {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // Tăng lên 10 giây
-        
+
         const result = await supabase.from('users').select('count').abortSignal(controller.signal);
         clearTimeout(timeoutId);
         console.log('✅ Supabase connection test SUCCESS:', result);

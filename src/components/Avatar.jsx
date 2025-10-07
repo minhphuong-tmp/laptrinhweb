@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { debugSupabaseStorage, getUserImageSrc } from '../services/imageService';
 
-const Avatar = ({ 
-    src, 
-    name, 
-    size = 40, 
-    className = '', 
-    style = {} 
+const Avatar = ({
+    src,
+    name,
+    size = 40,
+    className = '',
+    style = {}
 }) => {
     const [imageError, setImageError] = useState(false);
     const [imageUrl, setImageUrl] = useState(null);
@@ -21,7 +21,6 @@ const Avatar = ({
         width: size,
         height: size,
         borderRadius: '50%',
-        objectFit: 'cover',
         backgroundColor: '#00C26F',
         display: 'flex',
         alignItems: 'center',
@@ -29,21 +28,30 @@ const Avatar = ({
         color: 'white',
         fontWeight: 'bold',
         fontSize: size * 0.4,
+        overflow: 'hidden',
         ...style
+    };
+
+    const imageStyle = {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        borderRadius: '50%'
     };
 
     useEffect(() => {
         const loadImageUrl = async () => {
             console.log('Avatar useEffect - src:', src, 'name:', name);
-            
+
             if (src && src.trim() !== '' && src !== 'null' && src !== 'undefined') {
                 setLoading(true);
                 setImageError(false);
-                
+
                 try {
+                    console.log('🔍 Avatar calling getUserImageSrc with:', { src, name, size });
                     const url = await getUserImageSrc(src, name, size);
-                    console.log('Avatar src:', src, 'imageUrl:', url);
-                    
+                    console.log('✅ Avatar got URL:', url);
+
                     if (url) {
                         // Kiểm tra ảnh có load được không trước khi set
                         try {
@@ -99,21 +107,22 @@ const Avatar = ({
     // Nếu có URL ảnh và chưa lỗi, hiển thị ảnh
     if (imageUrl && !imageError) {
         return (
-            <img
-                src={imageUrl}
-                alt={name || 'Avatar'}
-                className={className}
-                style={avatarStyle}
-                onError={(e) => {
-                    console.log('Image load error for:', imageUrl);
-                    console.log('Error details:', e);
-                    setImageError(true);
-                }}
-                onLoad={() => {
-                    console.log('Image loaded successfully:', imageUrl);
-                }}
-                crossOrigin="anonymous"
-            />
+            <div className={className} style={avatarStyle}>
+                <img
+                    src={imageUrl}
+                    alt={name || 'Avatar'}
+                    style={imageStyle}
+                    onError={(e) => {
+                        console.log('Image load error for:', imageUrl);
+                        console.log('Error details:', e);
+                        setImageError(true);
+                    }}
+                    onLoad={() => {
+                        console.log('Image loaded successfully:', imageUrl);
+                    }}
+                    crossOrigin="anonymous"
+                />
+            </div>
         );
     }
 

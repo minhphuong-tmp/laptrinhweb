@@ -11,30 +11,37 @@ const Login = () => {
     const { signIn, user } = useAuth();
     const navigate = useNavigate();
 
-    // Auto navigate khi user được set
+    // Redirect về home nếu đã đăng nhập
     useEffect(() => {
-        if (user) {
-            console.log('User detected, navigating to home');
-            navigate('/home');
+        const isValidUser = user && user.id && user.email;
+        if (isValidUser) {
+            console.log('User already logged in, redirecting to home');
+            navigate('/home', { replace: true });
         }
     }, [user, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!email || !password) {
+            setError('Vui lòng nhập đầy đủ thông tin!');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
             console.log('Attempting login with:', email);
-            const { data, error } = await signIn(email, password);
-            console.log('Login response:', { data, error });
+            const result = await signIn(email.trim(), password.trim());
+            console.log('Login response:', result);
 
-            if (error) {
-                console.error('Login error:', error);
-                setError(error.message);
+            if (result.success) {
+                console.log('Login successful, navigating to home...');
+                navigate('/home');
             } else {
-                console.log('Login successful, waiting for auth state change...');
-                // Không navigate ngay, để onAuthStateChange handle
+                console.error('Login error:', result.error);
+                setError(result.error?.message || 'Đăng nhập thất bại');
             }
         } catch (error) {
             console.error('Login catch error:', error);

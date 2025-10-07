@@ -24,31 +24,37 @@ const SignUp = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
-        setError('');
 
         // Validation
+        if (!formData.name || !formData.email || !formData.password) {
+            setError('Vui lòng nhập đầy đủ thông tin!');
+            return;
+        }
+
         if (formData.password !== formData.confirmPassword) {
             setError('Mật khẩu xác nhận không khớp');
-            setLoading(false);
             return;
         }
 
         if (formData.password.length < 6) {
             setError('Mật khẩu phải có ít nhất 6 ký tự');
-            setLoading(false);
             return;
         }
 
+        setLoading(true);
+        setError('');
+
         try {
-            const { error } = await signUp(formData.email, formData.password, {
+            const result = await signUp(formData.email, formData.password, {
                 name: formData.name
             });
 
-            if (error) {
-                setError(error.message);
+            if (result.success) {
+                setError('');
+                alert('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
+                navigate('/login');
             } else {
-                navigate('/home');
+                setError(result.error?.message || 'Đăng ký thất bại');
             }
         } catch (error) {
             setError('Đã xảy ra lỗi khi đăng ký');

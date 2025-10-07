@@ -3,24 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import './Home.css';
 
 const Home = () => {
-    const { user, signOut, clearSession } = useAuth();
+    const { user, signOut, debugSession } = useAuth();
     const navigate = useNavigate();
 
     console.log('Home component rendering with user:', user);
 
     const handleSignOut = async () => {
-        await signOut();
-    };
-
-    const handleClearSession = async () => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa tất cả session và đăng xuất?')) {
-            const result = await clearSession();
-            if (result.success) {
-                // Force redirect to login
-                navigate('/login', { replace: true });
-                // Also reload the page to ensure clean state
-                window.location.href = '/login';
-            }
+        const result = await signOut();
+        if (result.success) {
+            // Navigate to login page after successful logout
+            navigate('/login', { replace: true });
         }
     };
 
@@ -98,23 +90,23 @@ const Home = () => {
                 <Link to="/todo" className="quick-action-button secondary">
                     📋 Thêm ghi chú
                 </Link>
-                <button 
+                <button
                     className="quick-action-button danger"
                     onClick={handleSignOut}
                 >
                     🚪 Đăng xuất
                 </button>
-                <button 
-                    className="quick-action-button warning"
-                    onClick={handleClearSession}
-                >
-                    🗑️ Xóa Session
-                </button>
-                <button 
+                <button
                     className="quick-action-button info"
                     onClick={() => window.location.reload()}
                 >
                     🔄 Reload Page
+                </button>
+                <button
+                    className="quick-action-button warning"
+                    onClick={debugSession}
+                >
+                    🔍 Debug Session
                 </button>
             </div>
         </div>

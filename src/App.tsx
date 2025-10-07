@@ -12,6 +12,7 @@ import NewChat from './pages/NewChat';
 import Notifications from './pages/Notifications';
 import Posts from './pages/Posts';
 import Profile from './pages/Profile';
+import PostDetails from './pages/PostDetails';
 import SignUp from './pages/SignUp';
 import Stats from './pages/Stats';
 import Todo from './pages/Todo';
@@ -32,6 +33,7 @@ function App() {
                             <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
                             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                            <Route path="/post/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
                             <Route path="/chat" element={<ProtectedRoute><ChatList /></ProtectedRoute>} />
                             <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                             <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
@@ -53,12 +55,15 @@ function ProtectedRoute({ children }) {
         return <Loading size="fullscreen" text="Đang khởi tạo ứng dụng..." />;
     }
 
-    if (!user) {
-        console.log('No user, redirecting to login');
+    // Kiểm tra user hợp lệ - phải có id và email
+    const isValidUser = user && user.id && user.email;
+
+    if (!isValidUser) {
+        console.log('No valid user, redirecting to login. User:', user);
         return <Navigate to="/login" replace />;
     }
 
-    console.log('User exists, rendering children');
+    console.log('Valid user exists, rendering children');
     return (
         <div className="app-layout">
             <Header />

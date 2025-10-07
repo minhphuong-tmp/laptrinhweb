@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import { getSupabaseFileUrl } from '../services/imageService';
+import { createPostLike, removePostLike } from '../services/postService';
 import Avatar from './Avatar';
 import './PostCard.css';
 
@@ -10,20 +11,21 @@ const PostCard = ({
     hasShadow = true,
     showMoreIcon = true,
     showDelete = false,
-    onDelete = () => {},
-    onEdit = () => {},
+    onDelete = () => { },
+    onEdit = () => { },
 }) => {
+    const navigate = useNavigate();
     const [likes, setLikes] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        setLikes(item?.likes || []);
+        // Support both 'likes' and 'postLikes' for compatibility
+        setLikes(item?.likes || item?.postLikes || []);
     }, [item]);
 
     const openPostDetails = () => {
         if (!showMoreIcon) return null;
-        // Navigate to post details if needed
-        console.log('Open post details:', item?.id);
+        navigate(`/post/${item?.id}`);
     };
 
     const onLike = async () => {
@@ -31,16 +33,11 @@ const PostCard = ({
             if (liked) {
                 const updatedLikes = likes.filter(like => like.userId !== currentUser?.id);
                 setLikes([...updatedLikes]);
-                
-                const { error } = await supabase
-                    .from('likes')
-                    .delete()
-                    .eq('postId', item?.id)
-                    .eq('userId', currentUser?.id);
 
-                if (error) {
+                const res = await removePostLike(item?.id, currentUser?.id);
+                if (!res.success) {
                     setLikes([...likes]); // Revert on error
-                    console.error('Remove like failed:', error);
+                    console.error('Remove like failed:', res.msg);
                 }
             } else {
                 const data = {
@@ -48,14 +45,11 @@ const PostCard = ({
                     postId: item?.id,
                 };
                 setLikes([...likes, data]);
-                
-                const { error } = await supabase
-                    .from('likes')
-                    .insert(data);
 
-                if (error) {
+                const res = await createPostLike(data);
+                if (!res.success) {
                     setLikes(likes.filter(like => like.userId !== currentUser?.id)); // Revert on error
-                    console.error('Add like failed:', error);
+                    console.error('Add like failed:', res.msg);
                 }
             }
         } catch (error) {
@@ -112,7 +106,7 @@ const PostCard = ({
                 </div>
 
                 {showMoreIcon && (
-                    <button 
+                    <button
                         className="post-more-btn"
                         onClick={openPostDetails}
                     >
@@ -122,13 +116,13 @@ const PostCard = ({
 
                 {showDelete && currentUser?.id === (item?.users?.id || item?.user?.id) && (
                     <div className="post-actions">
-                        <button 
+                        <button
                             className="post-action-btn"
                             onClick={handlePostEdit}
                         >
                             ✏️
                         </button>
-                        <button 
+                        <button
                             className="post-action-btn post-delete-btn"
                             onClick={handlePostDelete}
                         >
@@ -141,33 +135,54 @@ const PostCard = ({
             <div className="post-content">
                 <div className="post-body">
                     {item?.body && (
-                        <div 
+                        <div
                             className="post-text"
                             dangerouslySetInnerHTML={{ __html: item.body }}
                         />
                     )}
                 </div>
-                
-                {item?.file && item?.file.includes('postImages') && (
-                    <img
-                        src={getSupabaseFileUrl(item?.file)}
-                        alt="Post image"
-                        className="post-media"
-                    />
-                )}
-                
-                {item?.file && item?.file.includes('postVideos') && (
-                    <video
-                        src={getSupabaseFileUrl(item?.file)}
-                        controls
-                        className="post-media post-video"
-                    />
+
+                {/* Hiển thị ảnh/video */}
+                {item?.file && (
+                    <>
+                        {item.file.includes('postImages') || item.file.includes('.png') || item.file.includes('.jpg') || item.file.includes('.jpeg') ? (
+                            <img
+                                src={item.file}
+                                alt="Post image"
+                                className="post-media"
+                                onError={(e) => {
+                                    console.log('❌ Image load error:', item.file);
+                                    e.target.style.display = 'none';
+                                }}
+                                onLoad={() => {
+                                    console.log('✅ Image loaded:', item.file);
+                                }}
+                            />
+                        ) : item.file.includes('postVideos') || item.file.includes('.mp4') || item.file.includes('.mov') ? (
+                            <video
+                                src={item.file}
+                                controls
+                                className="post-media post-video"
+                                onError={(e) => {
+                                    console.log('❌ Video load error:', item.file);
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        ) : (
+                            <div className="post-media post-unknown">
+                                <p>Unsupported file type</p>
+                                <a href={item.file} target="_blank" rel="noopener noreferrer">
+                                    View file
+                                </a>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
             <div className="post-footer">
                 <div className="post-footer-btn">
-                    <button 
+                    <button
                         className={`post-action-btn ${liked ? 'liked' : ''}`}
                         onClick={onLike}
                     >
@@ -175,22 +190,24 @@ const PostCard = ({
                     </button>
                     <span className="post-count">{likes.length}</span>
                 </div>
-                
+
                 <div className="post-footer-btn">
-                    <button 
+                    <button
                         className="post-action-btn"
                         onClick={openPostDetails}
                     >
                         💬
                     </button>
-                    <span className="post-count">{item?.comments?.[0]?.count || 0}</span>
+                    <span className="post-count">
+                        {item?.comments?.[0]?.count || item?.comments?.length || 0}
+                    </span>
                 </div>
-                
+
                 <div className="post-footer-btn">
                     {loading ? (
                         <div className="post-loading">⏳</div>
                     ) : (
-                        <button 
+                        <button
                             className="post-action-btn"
                             onClick={onShare}
                         >

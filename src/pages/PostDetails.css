@@ -1,0 +1,129 @@
+.post-details-container {
+    min-height: 100vh;
+    background-color: #f5f5f5;
+    padding: 20px 0;
+}
+
+.post-details-content {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+.post-details-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    gap: 10px;
+}
+
+.loading-spinner {
+    font-size: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.not-found {
+    font-size: 18px;
+    color: #666;
+    font-weight: 500;
+}
+
+.comment-input-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin: 20px 0;
+    padding: 15px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.comment-input-wrapper {
+    flex: 1;
+}
+
+.comment-input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    resize: vertical;
+    min-height: 40px;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.comment-input:focus {
+    border-color: #007AFF;
+}
+
+.comment-send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #007AFF;
+    border-radius: 20px;
+    height: 40px;
+    width: 40px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 16px;
+}
+
+.comment-send-btn:hover:not(:disabled) {
+    background: #007AFF;
+    color: white;
+}
+
+.comment-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.comment-loading {
+    height: 40px;
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.comments-container {
+    margin-top: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.comments-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.no-comments {
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    margin: 20px 0;
+}
