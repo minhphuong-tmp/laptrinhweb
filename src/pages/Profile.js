@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { getUserImageSrc } from '../services/imageService';
@@ -20,6 +21,14 @@ const Profile = () => {
     const [hasMore, setHasMore] = useState(true);
     const [postsLimit, setPostsLimit] = useState(4);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
+    const isLoadingRef = useRef(false);
+    const isProcessingRef = useRef(false);
+    const lastLoadTimeRef = useRef(0);
+    const initialLoadRef = useRef(false);
+    const scrollPositionRef = useRef(0);
+    const postsContainerRef = useRef(null);
+    
 
     useEffect(() => {
         if (user) {
@@ -30,13 +39,26 @@ const Profile = () => {
                 address: user.address || '',
                 phoneNumber: user.phoneNumber || ''
             });
+            // Reset hasLoaded và initialLoadRef khi user thay đổi
+            setHasLoaded(false);
+            initialLoadRef.current = false;
         }
     }, [user]);
 
     // Fetch posts của user với REST API
     const loadUserPosts = async (loadMore = false) => {
-        if (!user?.id) return;
+        const now = Date.now();
+        
+        // Ngăn chặn multiple calls trong vòng 2 giây
+        if (now - lastLoadTimeRef.current < 2000) {
+            console.log('🚫 Load blocked - too soon:', now - lastLoadTimeRef.current, 'ms ago');
+            return;
+        }
+        
+        if (!user?.id || isLoadingRef.current) return;
 
+        lastLoadTimeRef.current = now;
+        isLoadingRef.current = true;
         setPostsLoading(true);
         try {
             const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
@@ -87,7 +109,7 @@ const Profile = () => {
                     commentsData = await commentsResponse.json();
                 }
 
-                // Format posts
+                // Format posts với user data từ database
                 const formattedPosts = await Promise.all(postsData.map(async (post) => {
                     const postLikes = likesData.filter(like => like.postId === post.id);
                     const postComments = commentsData.filter(comment => comment.postId === post.id);
@@ -106,16 +128,50 @@ const Profile = () => {
                         }
                     }
 
+                    // Load user data từ database cho từng post
+                    let postUser = {
+                        id: user.id,
+                        name: user.name,
+                        image: user.image
+                    };
+
+                    try {
+                        console.log('🔍 Loading user data for post userId:', post.userId);
+                        const userUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/users?id=eq.${post.userId}`;
+                        const userResponse = await fetch(userUrl, {
+                            method: 'GET',
+                            headers: {
+                                'apikey': apiKey,
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (userResponse.ok) {
+                            const userData = await userResponse.json();
+                            console.log('📊 User data for post:', userData);
+                            if (userData && userData.length > 0) {
+                                postUser = {
+                                    id: userData[0].id,
+                                    name: userData[0].name || 'Unknown User',
+                                    image: userData[0].image || null
+                                };
+                                console.log('✅ Post user updated:', postUser);
+                            }
+                        } else {
+                            console.error('❌ Failed to load user data:', userResponse.status);
+                        }
+                    } catch (error) {
+                        console.error('❌ Error loading user data for post:', error);
+                        // Fallback to current user data
+                    }
+
                     return {
                         ...post,
                         title: title,
                         content: cleanBody || 'Không có nội dung',
                         image: imageUrl,
-                        user: {
-                            id: user.id,
-                            name: user.name,
-                            image: user.image
-                        },
+                        user: postUser,
                         postLikes: postLikes,
                         comments: postComments,
                         likes_count: postLikes.length,
@@ -124,6 +180,11 @@ const Profile = () => {
                 }));
 
                 if (loadMore) {
+                    // Lưu scroll position trước khi update (theo StackOverflow solution)
+                    scrollPositionRef.current = window.pageYOffset;
+                    console.log('📍 Saved scroll position:', scrollPositionRef.current);
+                    
+                    // Update posts
                     setUserPosts(prev => [...prev, ...formattedPosts]);
                 } else {
                     setUserPosts(formattedPosts);
@@ -137,31 +198,51 @@ const Profile = () => {
         } finally {
             setPostsLoading(false);
             setIsLoadingMore(false);
+            isLoadingRef.current = false;
+            isProcessingRef.current = false;
         }
     };
 
     const handleLoadMore = () => {
-        if (!postsLoading && !isLoadingMore && hasMore) {
+        if (!postsLoading && !isLoadingMore && hasMore && !isProcessingRef.current) {
+            console.log('🔄 Loading more posts...');
+            isProcessingRef.current = true;
             setIsLoadingMore(true);
             loadUserPosts(true);
+        } else {
+            console.log('🚫 Load more blocked:', {
+                postsLoading,
+                isLoadingMore,
+                hasMore,
+                isProcessing: isProcessingRef.current
+            });
         }
     };
 
-    // Scroll listener cho infinite scroll
-    useEffect(() => {
-        const handleScroll = () => {
-            if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 1000) {
-                handleLoadMore();
-            }
-        };
 
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [hasMore, postsLoading, isLoadingMore]);
+
+
+
+    // Restore scroll position sau khi userPosts update (theo StackOverflow solution)
+    useLayoutEffect(() => {
+        if (scrollPositionRef.current > 0) {
+            console.log('🔄 Restoring scroll position:', scrollPositionRef.current);
+            window.scrollTo({
+                top: scrollPositionRef.current,
+                behavior: 'instant'
+            });
+            console.log('✅ Scroll position restored');
+        }
+    }, [userPosts.length]);
 
     useEffect(() => {
-        loadUserPosts();
-    }, [user?.id]);
+        if (user?.id && !initialLoadRef.current) {
+            console.log('🔄 Initial load triggered for user:', user.id);
+            initialLoadRef.current = true;
+            setHasLoaded(true);
+            loadUserPosts();
+        }
+    }, [user?.id]); // Chỉ depend vào user?.id
 
     const handleSave = async () => {
         if (!formData.name.trim()) return;
@@ -190,16 +271,16 @@ const Profile = () => {
 
             if (response.ok) {
                 console.log('✅ Profile updated successfully');
-                // Update local user data
-                setUserData({
+            // Update local user data
+            setUserData({
                     ...user,
-                    name: formData.name,
-                    bio: formData.bio,
-                    image: formData.image,
-                    address: formData.address,
-                    phoneNumber: formData.phoneNumber
-                });
-                setEditing(false);
+                name: formData.name,
+                bio: formData.bio,
+                image: formData.image,
+                address: formData.address,
+                phoneNumber: formData.phoneNumber
+            });
+            setEditing(false);
             } else {
                 console.error('❌ Error updating profile:', response.status);
             }
@@ -439,17 +520,38 @@ const Profile = () => {
                                     </div>
                                 </div>
                             ))}
+                            
                             {/* Loading indicator cho infinite scroll */}
-                            {(postsLoading || isLoadingMore) && (
+                            {isLoadingMore && (
                                 <div className="infinite-loading">
                                     <div className="loading-spinner">⏳</div>
                                     <p>Đang tải thêm bài đăng...</p>
                                 </div>
                             )}
+                            
                             {/* End of posts indicator */}
                             {!hasMore && userPosts.length > 0 && (
                                 <div className="end-of-posts">
                                     <p>🎉 Đã xem hết tất cả bài đăng!</p>
+                                </div>
+                            )}
+                            
+                            {/* Load More Button */}
+                            {hasMore && !isLoadingMore && (
+                                <div className="load-more-container">
+                                    <button 
+                                        className="btn btn-primary load-more-btn"
+                                        onClick={() => {
+                                            console.log('🔄 Load More button clicked');
+                                            if (!isProcessingRef.current) {
+                                                isProcessingRef.current = true;
+                                                setIsLoadingMore(true);
+                                                loadUserPosts(true);
+                                            }
+                                        }}
+                                    >
+                                        📜 Xem thêm bài đăng
+                                    </button>
                                 </div>
                             )}
                         </div>

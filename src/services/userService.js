@@ -1,92 +1,170 @@
-import { supabase } from "../lib/supabase";
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+const BASE_URL = 'https://oqtlakdvlmkaalymgrwd.supabase.co';
+
+const getAuthToken = () => {
+    try {
+        const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
+        if (storedToken) {
+            const authData = JSON.parse(storedToken);
+            return authData.access_token || API_KEY;
+        }
+    } catch (error) {
+        console.log('Could not parse stored token, using API key');
+    }
+    return API_KEY;
+};
 
 export const getUserData = async (userId) => {
     try {
-        // Lấy dữ liệu từ bảng users tùy chỉnh
-        const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select()
-            .eq('id', userId)
-            .single();
+        console.log('🔍 Getting user data for:', userId);
+        
+        const authToken = getAuthToken();
+        
+        // Lấy dữ liệu từ bảng users bằng REST API
+        const usersUrl = `${BASE_URL}/rest/v1/users?id=eq.${userId}`;
+        const usersResponse = await fetch(usersUrl, {
+            method: 'GET',
+            headers: {
+                'apikey': API_KEY,
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-        // Lấy dữ liệu từ Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-
-        if (userError) {
-            return { success: false, msg: userError?.message };
+        if (!usersResponse.ok) {
+            console.error('❌ Failed to get user data:', usersResponse.status);
+            return { success: false, msg: `HTTP error! status: ${usersResponse.status}` };
         }
 
-        if (authError) {
-            return { success: false, msg: authError?.message };
+        const usersData = await usersResponse.json();
+        console.log('📊 Users data response:', usersData);
+
+        if (!usersData || usersData.length === 0) {
+            console.log('⚠️ No user data found, creating basic user');
+            // Tạo user data cơ bản từ token
+            const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
+            if (storedToken) {
+                const authData = JSON.parse(storedToken);
+                const basicUser = {
+                    id: userId,
+                    email: authData.user?.email || 'unknown@example.com',
+                    name: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0] || 'User',
+                    image: authData.user?.user_metadata?.avatar_url || null,
+                    bio: null,
+                    address: null,
+                    phoneNumber: null,
+                    created_at: authData.user?.created_at || new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                return { success: true, data: basicUser };
+            }
+            return { success: false, msg: 'No user data found' };
         }
 
-        // Merge dữ liệu từ cả hai nguồn
-        const mergedData = {
-            ...userData,
-            email: authData.user?.email || userData.email, // Ưu tiên email từ auth
-            email_confirmed_at: authData.user?.email_confirmed_at,
-            created_at: authData.user?.created_at,
-            updated_at: authData.user?.updated_at
-        };
+        const userData = usersData[0];
+        
+        // Đảm bảo có email field từ token nếu không có trong database
+        if (!userData.email) {
+            const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
+            if (storedToken) {
+                const authData = JSON.parse(storedToken);
+                userData.email = authData.user?.email || 'unknown@example.com';
+            }
+        }
+        
+        console.log('✅ User data loaded:', userData);
 
-        return { success: true, data: mergedData };
+        return { success: true, data: userData };
     } catch (error) {
-        console.log('got error: ', error);
+        console.error('❌ getUserData error:', error);
         return { success: false, msg: error.message };
     }
 };
 
 export const updateUser = async (userId, data) => {
     try {
-        const { error } = await supabase
-            .from('users')
-            .update(data)
-            .eq('id', userId);
+        const authToken = getAuthToken();
+        
+        const updateUrl = `${BASE_URL}/rest/v1/users?id=eq.${userId}`;
+        const response = await fetch(updateUrl, {
+            method: 'PATCH',
+            headers: {
+                'apikey': API_KEY,
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+        });
 
-        if (error) {
-            return { success: false, msg: error?.message };
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Failed to update user:', response.status, errorText);
+            return { success: false, msg: `HTTP error! status: ${response.status}` };
         }
 
-        return { success: true, data };
+        const updatedData = await response.json();
+        return { success: true, data: updatedData[0] || data };
     } catch (error) {
-        console.log('got error: ', error);
+        console.error('❌ updateUser error:', error);
         return { success: false, msg: error.message };
     }
 };
 
 export const createUser = async (userData) => {
     try {
-        const { data, error } = await supabase
-            .from('users')
-            .insert([userData])
-            .select()
-            .single();
+        const authToken = getAuthToken();
+        
+        const createUrl = `${BASE_URL}/rest/v1/users`;
+        const response = await fetch(createUrl, {
+            method: 'POST',
+            headers: {
+                'apikey': API_KEY,
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(userData)
+        });
 
-        if (error) {
-            return { success: false, msg: error?.message };
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Failed to create user:', response.status, errorText);
+            return { success: false, msg: `HTTP error! status: ${response.status}` };
         }
 
-        return { success: true, data };
+        const createdData = await response.json();
+        return { success: true, data: createdData[0] };
     } catch (error) {
-        console.log('got error: ', error);
+        console.error('❌ createUser error:', error);
         return { success: false, msg: error.message };
     }
 };
 
 export const deleteUser = async (userId) => {
     try {
-        const { error } = await supabase
-            .from('users')
-            .delete()
-            .eq('id', userId);
+        const authToken = getAuthToken();
+        
+        const deleteUrl = `${BASE_URL}/rest/v1/users?id=eq.${userId}`;
+        const response = await fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+                'apikey': API_KEY,
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            }
+        });
 
-        if (error) {
-            return { success: false, msg: error?.message };
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Failed to delete user:', response.status, errorText);
+            return { success: false, msg: `HTTP error! status: ${response.status}` };
         }
 
         return { success: true };
     } catch (error) {
-        console.log('got error: ', error);
+        console.error('❌ deleteUser error:', error);
         return { success: false, msg: error.message };
     }
 };
@@ -94,19 +172,27 @@ export const deleteUser = async (userId) => {
 // Helper function để check user có tồn tại không
 export const checkUserExists = async (userId) => {
     try {
-        const { data, error } = await supabase
-            .from('users')
-            .select('id')
-            .eq('id', userId)
-            .single();
+        const authToken = getAuthToken();
+        
+        const checkUrl = `${BASE_URL}/rest/v1/users?id=eq.${userId}&select=id`;
+        const response = await fetch(checkUrl, {
+            method: 'GET',
+            headers: {
+                'apikey': API_KEY,
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-        if (error) {
+        if (!response.ok) {
+            console.error('❌ Failed to check user existence:', response.status);
             return { success: false, exists: false };
         }
 
-        return { success: true, exists: !!data };
+        const data = await response.json();
+        return { success: true, exists: data && data.length > 0 };
     } catch (error) {
-        console.log('got error: ', error);
+        console.error('❌ checkUserExists error:', error);
         return { success: false, exists: false };
     }
 };
@@ -118,27 +204,33 @@ export const syncUserWithAuth = async (userId) => {
         if (userRes.success) {
             return userRes;
         } else {
-            // Nếu không lấy được từ database, tạo user mới
-            const { data: authData } = await supabase.auth.getUser();
-            if (authData.user) {
-                const newUserData = {
-                    id: authData.user.id,
-                    email: authData.user.email,
-                    name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
-                    image: authData.user.user_metadata?.avatar_url || null,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
+            // Nếu không lấy được từ database, tạo user mới từ token
+            const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
+            if (storedToken) {
+                const authData = JSON.parse(storedToken);
+                if (authData.user) {
+                    const newUserData = {
+                        id: authData.user.id,
+                        email: authData.user.email,
+                        name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
+                        image: authData.user.user_metadata?.avatar_url || null,
+                        bio: null,
+                        address: null,
+                        phoneNumber: null,
+                        created_at: authData.user.created_at || new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
 
-                const createRes = await createUser(newUserData);
-                if (createRes.success) {
-                    return { success: true, data: createRes.data };
+                    const createRes = await createUser(newUserData);
+                    if (createRes.success) {
+                        return { success: true, data: createRes.data };
+                    }
                 }
             }
             return { success: false, msg: 'Failed to sync user data' };
         }
     } catch (error) {
-        console.log('got error: ', error);
+        console.error('❌ syncUserWithAuth error:', error);
         return { success: false, msg: error.message };
     }
 };
@@ -146,18 +238,25 @@ export const syncUserWithAuth = async (userId) => {
 // Lấy tất cả users (cho chat, search, etc.)
 export const getAllUsers = async (limit = 50, offset = 0) => {
     try {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*') // Select tất cả fields để debug
-            .order('created_at', { ascending: false })
-            .range(offset, offset + limit - 1);
+        const authToken = getAuthToken();
+        
+        const usersUrl = `${BASE_URL}/rest/v1/users?order=created_at.desc&limit=${limit}&offset=${offset}`;
+        const response = await fetch(usersUrl, {
+            method: 'GET',
+            headers: {
+                'apikey': API_KEY,
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-        if (error) {
-            console.log('getAllUsers error:', error);
-            return { success: false, msg: error?.message };
+        if (!response.ok) {
+            console.error('❌ Failed to get all users:', response.status);
+            return { success: false, msg: `HTTP error! status: ${response.status}` };
         }
 
-        console.log('All users data:', data);
+        const data = await response.json();
+        console.log('📊 All users data:', data);
 
         // Đảm bảo có image field
         const processedUsers = (data || []).map(user => ({
@@ -167,7 +266,7 @@ export const getAllUsers = async (limit = 50, offset = 0) => {
 
         return { success: true, data: processedUsers };
     } catch (error) {
-        console.log('got error: ', error);
+        console.error('❌ getAllUsers error:', error);
         return { success: false, msg: error.message };
     }
 };
@@ -179,18 +278,25 @@ export const searchUsers = async (query, limit = 20) => {
             return { success: true, data: [] };
         }
 
+        const authToken = getAuthToken();
         const searchTerm = `%${query.trim()}%`;
+        
+        const searchUrl = `${BASE_URL}/rest/v1/users?or=(name.ilike.${searchTerm},email.ilike.${searchTerm})&limit=${limit}`;
+        const response = await fetch(searchUrl, {
+            method: 'GET',
+            headers: {
+                'apikey': API_KEY,
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .or(`name.ilike.${searchTerm},email.ilike.${searchTerm}`)
-            .limit(limit);
-
-        if (error) {
-            console.log('searchUsers error:', error);
-            return { success: false, msg: error?.message };
+        if (!response.ok) {
+            console.error('❌ Failed to search users:', response.status);
+            return { success: false, msg: `HTTP error! status: ${response.status}` };
         }
+
+        const data = await response.json();
 
         // Đảm bảo có image field
         const processedUsers = (data || []).map(user => ({
@@ -200,7 +306,7 @@ export const searchUsers = async (query, limit = 20) => {
 
         return { success: true, data: processedUsers };
     } catch (error) {
-        console.log('got error: ', error);
+        console.error('❌ searchUsers error:', error);
         return { success: false, msg: error.message };
     }
 };

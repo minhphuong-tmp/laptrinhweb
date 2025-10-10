@@ -39,14 +39,14 @@ const Header = ({ title = "LinkUp", showBackButton = true }) => {
                 <h1 className="header-title">{title}</h1>
 
                 <div className="header-icons">
+                    <Link to="/" className="icon-link">
+                        <span className="icon">🏠</span>
+                    </Link>
                     <Link to="/posts" className="icon-link">
                         <span className="icon">📝</span>
                     </Link>
                     <Link to="/todo" className="icon-link">
                         <span className="icon">📋</span>
-                    </Link>
-                    <Link to="/notes" className="icon-link">
-                        <span className="icon">📄</span>
                     </Link>
                     <Link to="/stats" className="icon-link">
                         <span className="icon">📊</span>

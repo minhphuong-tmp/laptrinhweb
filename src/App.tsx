@@ -9,7 +9,6 @@ import ChatList from './pages/ChatList';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import NewChat from './pages/NewChat';
-import Notes from './pages/Notes';
 import Notifications from './pages/Notifications';
 import Posts from './pages/Posts';
 import Profile from './pages/Profile';
@@ -31,7 +30,7 @@ function App() {
                             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                             <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
                             <Route path="/todo" element={<ProtectedRoute><Todo /></ProtectedRoute>} />
-                            <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+                            <Route path="/notes" element={<Navigate to="/todo" replace />} />
                             <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
                             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -50,28 +49,37 @@ function App() {
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
 
-
     if (loading) {
         console.log('Still loading...');
         return <Loading size="fullscreen" text="Đang khởi tạo ứng dụng..." />;
     }
 
-    // Kiểm tra user hợp lệ - phải có id và email
-    const isValidUser = user && user.id && user.email;
+    // Kiểm tra user hợp lệ - phải có id và (name hoặc email)
+    const isValidUser = user && user.id && (user.name || user.email);
 
     if (!isValidUser) {
         console.log('No valid user, redirecting to login. User:', user);
         return <Navigate to="/login" replace />;
     }
 
-    return (
-        <div className="app-layout">
-            <Header />
-            <main className="main-content">
-                {children}
-            </main>
-        </div>
-    );
+    // Các trang không cần Header (đã có Sidebar và TopBar)
+    const pagesWithoutHeader = ['/', '/home', '/posts', '/todo', '/stats', '/profile', '/chat'];
+    const currentPath = window.location.pathname;
+    const needsHeader = !pagesWithoutHeader.includes(currentPath);
+
+    if (needsHeader) {
+        return (
+            <div className="app-layout">
+                <Header />
+                <main className="main-content">
+                    {children}
+                </main>
+            </div>
+        );
+    }
+
+    // Các trang chính sử dụng Facebook layout
+    return children;
 }
 
 export default App;

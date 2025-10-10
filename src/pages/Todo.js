@@ -7,7 +7,8 @@ import {
     toggleTodoComplete,
     getFilteredTodos,
     getPriorityColor,
-    getPriorityText
+    getPriorityText,
+    testNotesSchema
 } from '../services/todoService';
 import './Todo.css';
 
@@ -44,6 +45,8 @@ const Todo = () => {
 
     useEffect(() => {
         if (user?.id) {
+            // Test schema first
+            testNotesSchema();
             loadTodos();
         }
     }, [user?.id, loadTodos]);
@@ -51,25 +54,79 @@ const Todo = () => {
     const addTodo = async () => {
         if (!newTodo.title.trim() || !user?.id) return;
 
+        const tempId = 'temp-' + Date.now();
+        const tempTodo = {
+            id: tempId,
+            user_id: user.id,
+            title: newTodo.title,
+            description: newTodo.description,
+            priority: newTodo.priority,
+            deadline: newTodo.deadline,
+            completed: false,
+            created_at: new Date().toISOString()
+        };
+
+        // Optimistic UI update - thêm ngay lập tức
+        setTodos(prevTodos => [tempTodo, ...prevTodos]);
+        
+        // Clear form
+        setNewTodo({
+            title: '',
+            description: '',
+            priority: 'medium',
+            deadline: ''
+        });
+        setShowAddForm(false);
+
         try {
             const todoData = {
                 user_id: user.id,
-                title: newTodo.title,
-                description: newTodo.description,
-                priority: newTodo.priority,
-                deadline: newTodo.deadline || null,
+                title: tempTodo.title,
+                description: tempTodo.description,
+                priority: tempTodo.priority,
+                deadline: tempTodo.deadline || null,
                 completed: false
             };
 
             const result = await createTodo(todoData);
             if (result.success) {
-                setNewTodo({ title: '', description: '', priority: 'medium', deadline: '' });
-                setShowAddForm(false);
-                loadTodos(); // Reload todos
+                // Thay thế temp todo bằng real todo từ server
+                setTodos(prevTodos => 
+                    prevTodos.map(t => 
+                        t.id === tempId ? result.data : t
+                    )
+                );
+                console.log('✅ Todo created successfully');
             } else {
+                // Nếu API call thất bại, xóa temp todo
+                setTodos(prevTodos => prevTodos.filter(t => t.id !== tempId));
                 console.error('Error creating todo:', result.msg);
+                
+                // Hiển thị thông báo lỗi
+                const errorMessage = document.createElement('div');
+                errorMessage.textContent = '❌ Lỗi khi tạo ghi chú!';
+                errorMessage.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #ef4444;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                `;
+                document.body.appendChild(errorMessage);
+                
+                setTimeout(() => {
+                    errorMessage.remove();
+                }, 3000);
             }
         } catch (error) {
+            // Nếu có exception, xóa temp todo
+            setTodos(prevTodos => prevTodos.filter(t => t.id !== tempId));
             console.error('Error creating todo:', error);
         }
     };
@@ -78,32 +135,118 @@ const Todo = () => {
         const todo = todos.find(t => t.id === id);
         if (!todo) return;
 
+        // Optimistic UI update - update ngay lập tức
+        setTodos(prevTodos => 
+            prevTodos.map(t => 
+                t.id === id ? { ...t, completed: !t.completed } : t
+            )
+        );
+
         try {
             const result = await toggleTodoComplete(id, !todo.completed);
-            if (result.success) {
-                loadTodos(); // Reload todos
-            } else {
+            if (!result.success) {
+                // Nếu API call thất bại, revert lại UI
+                setTodos(prevTodos => 
+                    prevTodos.map(t => 
+                        t.id === id ? { ...t, completed: todo.completed } : t
+                    )
+                );
                 console.error('Error toggling todo:', result.msg);
+                
+                // Hiển thị thông báo lỗi
+                const errorMessage = document.createElement('div');
+                errorMessage.textContent = '❌ Lỗi khi cập nhật trạng thái!';
+                errorMessage.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #ef4444;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                `;
+                document.body.appendChild(errorMessage);
+                
+                setTimeout(() => {
+                    errorMessage.remove();
+                }, 3000);
+            } else {
+                console.log('✅ Todo toggled successfully');
             }
         } catch (error) {
+            // Nếu có exception, revert lại UI
+            setTodos(prevTodos => 
+                prevTodos.map(t => 
+                    t.id === id ? { ...t, completed: todo.completed } : t
+                )
+            );
             console.error('Error toggling todo:', error);
         }
     };
 
     const deleteTodoItem = async (id) => {
+        // Optimistic UI update - xóa ngay lập tức
+        const todoToDelete = todos.find(t => t.id === id);
+        setTodos(prevTodos => prevTodos.filter(t => t.id !== id));
+
         try {
             const result = await deleteTodo(id);
-            if (result.success) {
-                loadTodos(); // Reload todos
-            } else {
+            if (!result.success) {
+                // Nếu API call thất bại, restore lại todo
+                setTodos(prevTodos => [...prevTodos, todoToDelete]);
                 console.error('Error deleting todo:', result.msg);
+                
+                // Hiển thị thông báo lỗi
+                const errorMessage = document.createElement('div');
+                errorMessage.textContent = '❌ Lỗi khi xóa ghi chú!';
+                errorMessage.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #ef4444;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                `;
+                document.body.appendChild(errorMessage);
+                
+                setTimeout(() => {
+                    errorMessage.remove();
+                }, 3000);
+            } else {
+                console.log('✅ Todo deleted successfully');
             }
         } catch (error) {
+            // Nếu có exception, restore lại todo
+            setTodos(prevTodos => [...prevTodos, todoToDelete]);
             console.error('Error deleting todo:', error);
         }
     };
 
     const filteredTodos = getFilteredTodos(todos, filter);
+    
+    // Debug logging for statistics
+    console.log('📊 Todo Statistics:', {
+        total: todos.length,
+        completed: todos.filter(t => t.completed).length,
+        active: todos.filter(t => !t.completed).length,
+        today: todos.filter(t => 
+            t.deadline && new Date(t.deadline).toDateString() === new Date().toDateString()
+        ).length,
+        overdue: todos.filter(t => 
+            t.deadline && new Date(t.deadline) < new Date() && !t.completed
+        ).length,
+        currentFilter: filter,
+        filteredCount: filteredTodos.length
+    });
 
     return (
         <div className="todo-container">
@@ -119,6 +262,28 @@ const Todo = () => {
                         >
                             + Thêm ghi chú
                         </button>
+                    </div>
+
+                    {/* Statistics Overview */}
+                    <div className="todo-stats">
+                        <div className="stat-card">
+                            <div className="stat-number">{todos.length}</div>
+                            <div className="stat-label">Tổng cộng</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-number">{todos.filter(t => !t.completed).length}</div>
+                            <div className="stat-label">Đang làm</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-number">{todos.filter(t => t.completed).length}</div>
+                            <div className="stat-label">Hoàn thành</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-number">
+                                {todos.length > 0 ? Math.round((todos.filter(t => t.completed).length / todos.length) * 100) : 0}%
+                            </div>
+                            <div className="stat-label">Tiến độ</div>
+                        </div>
                     </div>
 
             <div className="todo-filters">
@@ -165,7 +330,15 @@ const Todo = () => {
                             <h3>Thêm ghi chú mới</h3>
                             <button 
                                 className="close-btn"
-                                onClick={() => setShowAddForm(false)}
+                                onClick={() => {
+                                    setShowAddForm(false);
+                                    setNewTodo({
+                                        title: '',
+                                        description: '',
+                                        priority: 'medium',
+                                        deadline: ''
+                                    });
+                                }}
                             >
                                 ×
                             </button>
@@ -259,7 +432,7 @@ const Todo = () => {
                                         </span>
                                         {todo.deadline && (
                                             <span className="deadline">
-                                                📅 {new Date(todo.deadline).toLocaleDateString('vi-VN')}
+                                                {new Date(todo.deadline).toLocaleDateString('vi-VN')}
                                             </span>
                                         )}
                                     </div>
@@ -269,7 +442,7 @@ const Todo = () => {
                                 className="delete-btn"
                                 onClick={() => deleteTodoItem(todo.id)}
                             >
-                                🗑️
+                                Xóa
                             </button>
                         </div>
                     ))

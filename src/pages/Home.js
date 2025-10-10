@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
+import Sidebar from '../components/Sidebar';
+import TopBar from '../components/TopBar';
 import { useAuth } from '../context/AuthContext';
 import { fetchAllPosts } from '../services/postsService';
 import { getUserImageSrc } from '../services/imageService';
 import './Home.css';
+import './FacebookLayout.css';
 
 const Home = () => {
     const { user, signOut, debugSession } = useAuth();
@@ -602,216 +605,286 @@ const Home = () => {
 
     if (loading) {
         return (
-            <div className="home-container">
-                <div className="loading">Đang tải bài viết...</div>
+            <div className="facebook-layout">
+                <Sidebar />
+                <TopBar />
+                <div className="main-content">
+                    <div className="content-wrapper">
+                        <div className="loading">Đang tải bài viết...</div>
+                    </div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="home-container">
-            <header className="home-header">
-                <h1 className="home-title">📰 Bài viết mới nhất</h1>
-                <div className="header-actions">
-                    <Link to="/posts" className="create-post-button">
-                        ✏️ Tạo bài viết
-                    </Link>
-                    <button
-                        className="logout-button"
-                        onClick={handleSignOut}
-                    >
-                        🚪 Đăng xuất
-                    </button>
-                </div>
-            </header>
-
-            <div className="posts-feed">
-                {posts.length === 0 ? (
-                    <div className="empty-state">
-                        <div className="empty-icon">📝</div>
-                        <h3>Chưa có bài viết nào</h3>
-                        <p>Hãy tạo bài viết đầu tiên của bạn!</p>
-                        <Link to="/posts" className="create-first-button">
-                            Tạo bài viết đầu tiên
-                        </Link>
+        <div className="facebook-layout">
+            <Sidebar />
+            <TopBar />
+            <div className="main-content">
+                <div className="content-wrapper">
+                    {/* Create Post Section */}
+                    <div className="create-post-section">
+                        <div className="create-post-header">
+                            <Avatar
+                                src={user?.image}
+                                name={user?.name}
+                                size={40}
+                            />
+                            <div className="create-post-input">
+                                <input 
+                                    type="text" 
+                                    placeholder={`${user?.name || 'Bạn'} đang nghĩ gì?`}
+                                    onClick={() => navigate('/posts')}
+                                />
+                            </div>
+                        </div>
+                        <div className="create-post-actions">
+                            <button className="action-btn photo-btn" onClick={() => navigate('/posts')}>
+                                <span className="btn-icon">📷</span>
+                                <span className="btn-text">Ảnh/Video</span>
+                            </button>
+                            <button className="action-btn feeling-btn" onClick={() => navigate('/posts')}>
+                                <span className="btn-icon">😊</span>
+                                <span className="btn-text">Cảm xúc</span>
+                            </button>
+                        </div>
                     </div>
-                ) : (
-                    posts.map((post) => (
-                        <div key={post.id} className="post-card">
-                            <div className="post-header">
-                                <div className="post-author">
-                                    <Avatar
-                                        src={post.user?.image}
-                                        name={post.user?.name}
-                                        size={40}
-                                    />
-                                    <div className="author-info">
-                                        <h4 className="author-name">
-                                            {post.user?.name || 'Người dùng'}
-                                        </h4>
-                                        <span className="post-time">
-                                            {formatTime(post.created_at)}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="post-content">
-                                <p className="post-text">{post.content}</p>
-                                {post.image && (
-                                    <div className="post-image">
-                                        <img
-                                            src={post.image}
-                                            alt={post.title}
-                                            loading="lazy"
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                            }}
-                                            onLoad={() => {
-                                            }}
+                    {/* Posts Feed */}
+                    <div className="posts-feed">
+                        {posts.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon">📝</div>
+                                <h3>Chưa có bài viết nào</h3>
+                                <p>Hãy tạo bài viết đầu tiên của bạn!</p>
+                                <button 
+                                    className="btn btn-primary"
+                                    onClick={() => navigate('/posts')}
+                                >
+                                    Tạo bài viết
+                                </button>
+                            </div>
+                        ) : (
+                            posts.map((post) => (
+                                <div key={post.id} className="post-card">
+                                    <div className="post-header">
+                                        <Avatar
+                                            src={post.user?.image}
+                                            name={post.user?.name}
+                                            size={40}
                                         />
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="post-actions">
-                                <button
-                                    className={`action-button like-button ${post.is_liked ? 'liked' : ''}`}
-                                    onClick={() => handleLike(post.id)}
-                                    disabled={liking === post.id}
-                                >
-                                    {liking === post.id ? '⏳' : post.is_liked ? '❤️' : '🤍'}
-                                    <span>{post.likes_count || 0}</span>
-                                </button>
-
-                                <button
-                                    className="action-button comment-button"
-                                    onClick={() => handleShowComments(post.id)}
-                                >
-                                    💬 <span>{post.comments_count || 0}</span>
-                                </button>
-
-                                <button className="action-button share-button">
-                                    📤 Chia sẻ
-                                </button>
-                            </div>
-
-                            {/* Comments Section */}
-                            {showComments[post.id] && (
-                                <div className="comments-section">
-                                    <div className="comments-header">
-                                        <h4>Bình luận ({post.comments_count || 0})</h4>
-                                    </div>
-
-                                    {/* Comment Input */}
-                                    <div className="comment-input-section">
-                                        <div className="comment-input-header">
-                                            <Avatar
-                                                src={user?.image}
-                                                name={user?.name}
-                                                size={30}
-                                            />
-                                            <div className="comment-user-info">
-                                                <span className="comment-user-name">{user?.name || 'User'}</span>
-                                                <span className="comment-user-label">đang bình luận</span>
-                                            </div>
+                                        <div className="post-author-info">
+                                            <h4 className="post-author-name">
+                                                {post.user?.name || 'Unknown User'}
+                                            </h4>
+                                            <span className="post-time">
+                                                {formatTime(post.created_at)}
+                                            </span>
                                         </div>
-                                        <div className="comment-input-wrapper">
-                                            <div className="comment-input-container">
-                                                <textarea
-                                                    className="comment-textarea"
-                                                    placeholder="Viết bình luận..."
-                                                    value={newComment[post.id] || ''}
-                                                    onChange={(e) => handleCommentChange(post.id, e.target.value)}
-                                                    data-post-id={post.id}
-                                                    rows="1"
+                                    </div>
+
+                                    <div className="post-content">
+                                        <p>{post.content || post.body || 'Không có nội dung'}</p>
+                                        {post.image && (
+                                            <div className="post-image">
+                                                <img 
+                                                    src={post.image} 
+                                                    alt="Post content" 
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                    }}
                                                 />
-                                                <div className="comment-actions">
-                                                    <button
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="post-stats">
+                                        <div className="post-likes">
+                                            {post.likes_count > 0 && (
+                                                <span className="likes-count">
+                                                    👍 {post.likes_count}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="post-comments-count">
+                                            {post.comments_count > 0 && (
+                                                <span className="comments-count">
+                                                    💬 {post.comments_count} bình luận
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="post-actions">
+                                        <button 
+                                            className={`action-button like-btn ${post.isLiked ? 'liked' : ''}`}
+                                            onClick={() => handleLike(post.id)}
+                                            disabled={liking === post.id}
+                                        >
+                                            <span className="action-icon">
+                                                {post.isLiked ? '❤️' : '🤍'}
+                                            </span>
+                                            <span className="action-text">Thích</span>
+                                        </button>
+                                        <button 
+                                            className="action-button comment-btn"
+                                            onClick={() => handleShowComments(post.id)}
+                                        >
+                                            <span className="action-icon">💬</span>
+                                            <span className="action-text">Bình luận</span>
+                                        </button>
+                                        <button className="action-button share-btn">
+                                            <span className="action-icon">📤</span>
+                                            <span className="action-text">Chia sẻ</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Comments Section */}
+                                    {showComments[post.id] && (
+                                        <div className="comments-section">
+                                            <div className="comments-header">
+                                                <h4>Bình luận</h4>
+                                                <button 
+                                                    className="close-comments-btn"
+                                                    onClick={() => setShowComments(prev => ({ ...prev, [post.id]: false }))}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                            
+                                            <div className="comment-input-section">
+                                                <div className="comment-input-header">
+                                                    <Avatar
+                                                        src={user?.image}
+                                                        name={user?.name}
+                                                        size={32}
+                                                    />
+                                                    <span className="comment-user-name">{user?.name}</span>
+                                                </div>
+                                                <div className="comment-input-wrapper">
+                                                    <textarea
+                                                        placeholder="Viết bình luận..."
+                                                        value={newComment[post.id] || ''}
+                                                        onChange={(e) => handleCommentChange(post.id, e.target.value)}
+                                                        className="comment-textarea"
+                                                        rows="2"
+                                                    />
+                                                    <button 
                                                         className="comment-submit-btn"
                                                         onClick={() => handleSubmitComment(post.id)}
                                                         disabled={!newComment[post.id]?.trim() || submittingComment[post.id]}
                                                     >
-                                                        {submittingComment[post.id] ? '⏳' : 'Gửi'}
+                                                        {submittingComment[post.id] ? 'Đang gửi...' : 'Gửi'}
                                                     </button>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
 
-                                    {loadingComments[post.id] ? (
-                                        <div className="loading-comments">
-                                            <div className="loading-spinner">⏳</div>
-                                            <p>Đang tải bình luận...</p>
-                                        </div>
-                                    ) : comments[post.id] && comments[post.id].length > 0 ? (
-                                        <div className="comments-list">
-                                            {comments[post.id].map((comment, index) => (
-                                                <div key={`comment-${comment.id}-${index}`} className="comment-item">
-                                                    <div className="comment-author">
-                                                        <Avatar
-                                                            src={comment.user?.image}
-                                                            name={comment.user?.name}
-                                                            size={30}
-                                                        />
-                                                        <div className="comment-info">
-                                                            <span className="comment-author-name">
-                                                                {comment.user?.name || 'Unknown User'}
-                                                            </span>
-                                                            <span className="comment-time">
-                                                                {formatTime(comment.created_at)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="comment-content">
-                                                        <p>{comment.content || comment.body || comment.text || 'Không có nội dung'}</p>
-                                                    </div>
+                                            {loadingComments[post.id] ? (
+                                                <div className="loading-comments">
+                                                    <div className="loading-spinner"></div>
+                                                    <p>Đang tải bình luận...</p>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="no-comments">
-                                            <p>Chưa có bình luận nào</p>
+                                            ) : comments[post.id] && comments[post.id].length > 0 ? (
+                                                <div className="comments-list">
+                                                    {comments[post.id].map((comment, index) => (
+                                                        <div key={`comment-${comment.id}-${index}`} className="comment-item">
+                                                            <div className="comment-author">
+                                                                <Avatar
+                                                                    src={comment.user?.image}
+                                                                    name={comment.user?.name}
+                                                                    size={30}
+                                                                />
+                                                                <div className="comment-info">
+                                                                    <span className="comment-author-name">
+                                                                        {comment.user?.name || 'Unknown User'}
+                                                                    </span>
+                                                                    <span className="comment-time">
+                                                                        {formatTime(comment.created_at)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="comment-content">
+                                                                <p>{comment.content || comment.body || comment.text || 'Không có nội dung'}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="no-comments">
+                                                    <p>Chưa có bình luận nào</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
-                            )}
+                            ))
+                        )}
+                    </div>
+
+                    {/* Loading indicator */}
+                    {isLoadingPosts && (
+                        <div className="loading-indicator">
+                            <div className="loading-spinner"></div>
+                            <p>Đang tải thêm bài viết...</p>
                         </div>
-                    ))
-                )}
+                    )}
+
+                    {/* End of posts indicator */}
+                    {!hasMorePosts && posts.length > 0 && (
+                        <div className="end-of-posts">
+                            <p>Đã hiển thị tất cả bài viết</p>
+                        </div>
+                    )}
+                </div>
             </div>
-
-            {/* Loading indicator */}
-            {isLoadingPosts && (
-                <div className="loading-indicator">
-                    <div className="loading-spinner"></div>
-                    <p>Đang tải thêm bài viết...</p>
+            
+            {/* Right Sidebar - Conversations */}
+            <div className="right-sidebar">
+                <div className="right-sidebar-content">
+                    <h3>Cuộc trò chuyện</h3>
+                    <div className="conversations-list">
+                        <div className="conversation-item">
+                            <div className="conversation-avatar">
+                                <div className="avatar-placeholder">👤</div>
+                            </div>
+                            <div className="conversation-info">
+                                <div className="conversation-name">Người dùng 1</div>
+                                <div className="conversation-preview">Tin nhắn mới nhất...</div>
+                            </div>
+                            <div className="conversation-time">2h</div>
+                        </div>
+                        
+                        <div className="conversation-item">
+                            <div className="conversation-avatar">
+                                <div className="avatar-placeholder">👤</div>
+                            </div>
+                            <div className="conversation-info">
+                                <div className="conversation-name">Người dùng 2</div>
+                                <div className="conversation-preview">Đang hoạt động</div>
+                            </div>
+                            <div className="conversation-time">5h</div>
+                        </div>
+                        
+                        <div className="conversation-item">
+                            <div className="conversation-avatar">
+                                <div className="avatar-placeholder">👤</div>
+                            </div>
+                            <div className="conversation-info">
+                                <div className="conversation-name">Người dùng 3</div>
+                                <div className="conversation-preview">Hẹn gặp lại!</div>
+                            </div>
+                            <div className="conversation-time">1d</div>
+                        </div>
+                    </div>
+                    
+                    <div className="right-sidebar-footer">
+                        <button className="new-chat-btn">
+                            <span className="btn-icon">💬</span>
+                            <span>Tạo cuộc trò chuyện</span>
+                        </button>
+                    </div>
                 </div>
-            )}
-
-            {/* End of posts indicator */}
-            {!hasMorePosts && posts.length > 0 && (
-                <div className="end-of-posts">
-                    <p>Đã hiển thị tất cả bài viết</p>
-                </div>
-            )}
-
-            <div className="quick-actions">
-                <Link to="/todo" className="quick-action-button secondary">
-                    📋 Ghi chú
-                </Link>
-                <Link to="/chat" className="quick-action-button secondary">
-                    💬 Chat
-                </Link>
-                <Link to="/profile" className="quick-action-button secondary">
-                    👤 Hồ sơ
-                </Link>
-                <button
-                    className="quick-action-button warning"
-                    onClick={debugSession}
-                >
-                    🔍 Debug Session
-                </button>
             </div>
         </div>
     );

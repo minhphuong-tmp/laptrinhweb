@@ -56,13 +56,18 @@ export const AuthProvider = ({ children }) => {
 
                             // Sau đó thử lấy thông tin chi tiết từ database (async, không block)
                             try {
+                                console.log('🔄 Loading detailed user data for:', session.user.id);
                                 const userRes = await getUserData(session.user.id);
                                 if (userRes.success) {
+                                    console.log('✅ Detailed user data loaded:', userRes.data);
                                     setUser(userRes.data);
-
+                                } else {
+                                    console.log('⚠️ Failed to get user data, using basic user:', userRes.msg);
+                                    // Fallback: giữ nguyên basicUser đã set
                                 }
                             } catch (error) {
-                                console.error('Error loading user data:', error);
+                                console.error('❌ Error loading user data:', error);
+                                // Fallback: giữ nguyên basicUser đã set
                             }
                         } else {
                             setUser(null);
