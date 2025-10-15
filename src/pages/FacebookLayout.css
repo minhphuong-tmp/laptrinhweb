@@ -48,13 +48,52 @@
     gap: 8px;
 }
 
+.loading-conversations {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    color: #65676b;
+}
+
+.loading-conversations .loading-spinner {
+    font-size: 24px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 8px;
+}
+
+.loading-conversations p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.no-conversations {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    color: #65676b;
+}
+
+.no-conversations .empty-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+    opacity: 0.5;
+}
+
+.no-conversations p {
+    margin: 0;
+    font-size: 14px;
+    text-align: center;
+}
+
 .conversation-item {
     display: flex;
     align-items: center;
     padding: 12px;
     border-radius: 8px;
+    transition: background-color 0.2s ease;
     cursor: pointer;
-    transition: background 0.3s ease;
 }
 
 .conversation-item:hover {
@@ -98,6 +137,15 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.conversation-sender {
+    font-weight: 600;
+    color: #1c1e21;
+}
+
+.conversation-content {
+    color: #65676b;
 }
 
 .conversation-time {
@@ -227,13 +275,23 @@
 }
 
 .post-header {
-    display: flex;
-    align-items: center;
+    display: flex !important;
+    align-items: center !important;
     margin-bottom: 12px;
+    gap: 6px !important;
 }
 
 .post-author-info {
-    margin-left: 12px;
+    margin-left: 0px !important;
+}
+
+/* CSS với độ ưu tiên cao nhất */
+.post-card .post-header {
+    gap: 6px !important;
+}
+
+.post-card .post-header .post-author-info {
+    margin-left: 0px !important;
 }
 
 .post-author-name {
@@ -259,16 +317,7 @@
     color: #1c1e21;
 }
 
-.post-image {
-    margin-top: 12px;
-}
-
-.post-image img {
-    width: 100%;
-    border-radius: 8px;
-    max-height: 400px;
-    object-fit: cover;
-}
+/* CSS ảnh đã được xử lý trong Home.css */
 
 .post-stats {
     display: flex;
@@ -277,6 +326,7 @@
     padding: 8px 0;
     border-bottom: 1px solid #e4e6ea;
     margin-bottom: 8px;
+    margin-top: 20px;
 }
 
 .likes-count, .comments-count {
@@ -617,4 +667,28 @@
     .action-button {
         justify-content: flex-start;
     }
+}
+
+/* CSS cuối cùng để override mọi thứ */
+div.post-header {
+    gap: 6px !important;
+}
+
+div.post-header .post-author-info {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
+}
+
+div.post-header > * {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
+}
+
+.post-card div.post-header {
+    gap: 6px !important;
+}
+
+.post-card div.post-header .post-author-info {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
 }

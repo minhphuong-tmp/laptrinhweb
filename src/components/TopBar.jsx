@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
+import NotificationDropdown from './NotificationDropdown';
+import MessageDropdown from './MessageDropdown';
 import './TopBar.css';
 
 const TopBar = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [showMessages, setShowMessages] = useState(false);
 
     const handleSignOut = async () => {
         if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
@@ -40,15 +44,34 @@ const TopBar = () => {
                 {/* Right Side */}
                 <div className="topbar-right">
                     {/* Notifications */}
-                    <button className="topbar-btn notification-btn">
-                        <span className="btn-icon">🔔</span>
-                        <span className="notification-badge">3</span>
-                    </button>
+                    <div className="notification-container">
+                        <button 
+                            className="topbar-btn notification-btn"
+                            onClick={() => setShowNotifications(!showNotifications)}
+                        >
+                            <span className="btn-icon">🔔</span>
+                            <span className="notification-badge">3</span>
+                        </button>
+                        <NotificationDropdown 
+                            isOpen={showNotifications}
+                            onClose={() => setShowNotifications(false)}
+                        />
+                    </div>
 
                     {/* Messages */}
-                    <button className="topbar-btn">
-                        <span className="btn-icon">💬</span>
-                    </button>
+                    <div className="message-container">
+                        <button 
+                            className="topbar-btn"
+                            onClick={() => setShowMessages(!showMessages)}
+                            title="Tin nhắn"
+                        >
+                            <span className="btn-icon">💬</span>
+                        </button>
+                        <MessageDropdown 
+                            isOpen={showMessages}
+                            onClose={() => setShowMessages(false)}
+                        />
+                    </div>
 
                     {/* User Menu */}
                     <div className="user-menu-container">

@@ -19,12 +19,17 @@ const ChatList = () => {
 
     const loadConversations = async () => {
         try {
+            console.log('🔍 Loading conversations for user:', user.id);
             const result = await getConversations(user.id);
+            console.log('📊 Conversations result:', result);
             if (result.success) {
                 setConversations(result.data);
+                console.log('✅ Conversations loaded:', result.data.length, 'conversations');
+            } else {
+                console.error('❌ Failed to load conversations:', result.msg);
             }
         } catch (error) {
-            console.error('Error loading conversations:', error);
+            console.error('❌ Error loading conversations:', error);
         } finally {
             setLoading(false);
         }
@@ -107,13 +112,14 @@ const ChatList = () => {
     }
 
     return (
-        <div className="chat-list-container">
-            <header className="chat-list-header">
-                <h1>Tin nhắn</h1>
-                <Link to="/new-chat" className="new-chat-button">
-                    ➕ Tạo mới
-                </Link>
-            </header>
+        <div className="facebook-layout">
+            <div className="chat-list-container">
+                <header className="chat-list-header">
+                    <h1>Tin nhắn</h1>
+                    <Link to="/new-chat" className="new-chat-button">
+                        ➕ Tạo mới
+                    </Link>
+                </header>
 
             <div className="conversations-list">
                 {conversations.length === 0 ? (
@@ -161,6 +167,7 @@ const ChatList = () => {
                         </div>
                     ))
                 )}
+            </div>
             </div>
         </div>
     );

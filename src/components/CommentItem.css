@@ -6,11 +6,17 @@
 }
 
 .comment-content {
-    background-color: rgba(0, 0, 0, 0.06);
-    flex: 1;
-    gap: 5px;
-    padding: 10px 14px;
-    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.06) !important;
+    gap: 5px !important;
+    padding: 10px 14px !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin-left: 5px !important;
+    position: relative;
+    z-index: 2;
 }
 
 .comment-item.highlight .comment-content {
@@ -21,8 +27,8 @@
 
 .comment-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: flex-start;
     margin-bottom: 5px;
 }
 

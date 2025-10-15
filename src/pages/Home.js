@@ -3,11 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
+import ChatPopup from '../components/ChatPopup';
+import CommentModal from '../components/CommentModal';
 import { useAuth } from '../context/AuthContext';
 import { fetchAllPosts } from '../services/postsService';
 import { getUserImageSrc } from '../services/imageService';
+import { getConversations } from '../services/chatService';
 import './Home.css';
 import './FacebookLayout.css';
+
 
 const Home = () => {
     const { user, signOut, debugSession } = useAuth();
@@ -15,17 +19,94 @@ const Home = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [liking, setLiking] = useState(null);
+    const [conversations, setConversations] = useState([]);
+    const [conversationsLoading, setConversationsLoading] = useState(false);
+    const [chatPopupOpen, setChatPopupOpen] = useState(false);
+    const [selectedConversationId, setSelectedConversationId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isLoadingPosts, setIsLoadingPosts] = useState(false);
     const [hasMorePosts, setHasMorePosts] = useState(true);
-    const [showComments, setShowComments] = useState({});
-    const [comments, setComments] = useState({});
-    const [loadingComments, setLoadingComments] = useState({});
-    const [newComment, setNewComment] = useState({});
-    const [submittingComment, setSubmittingComment] = useState({});
+    const [commentModalOpen, setCommentModalOpen] = useState(false);
+    const [selectedPost, setSelectedPost] = useState(null);
     const postsPerPage = 15;
 
+    // Load conversations cho right sidebar
+    const loadConversations = async (showLoading = false) => {
+        if (!user?.id) return;
+        
+        try {
+            if (showLoading) {
+                setConversationsLoading(true);
+            }
+            const result = await getConversations(user.id);
+            if (result.success) {
+                setConversations(result.data.slice(0, 5)); // Chỉ hiển thị 5 cuộc trò chuyện gần nhất
+            }
+        } catch (error) {
+            console.error('Error loading conversations:', error);
+        } finally {
+            if (showLoading) {
+                setConversationsLoading(false);
+            }
+        }
+    };
+
+    const formatConversationTime = (timestamp) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffHours < 1) {
+            return 'Vừa xong';
+        } else if (diffHours < 24) {
+            return `${diffHours}h`;
+        } else if (diffDays < 7) {
+            return `${diffDays}d`;
+        } else {
+            return date.toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' });
+        }
+    };
+
+    const getConversationName = (conversation) => {
+        if (conversation.type === 'group') {
+            return conversation.name || 'Nhóm chat';
+        }
+
+        const otherMember = conversation.conversation_members?.find(
+            member => member.user_id !== user.id
+        );
+        return otherMember?.user?.name || 'Người dùng';
+    };
+
+    const getConversationAvatar = (conversation) => {
+        if (conversation.type === 'group') {
+            return <Avatar src={undefined} name="Group" size={32} />;
+        }
+
+        const otherMember = conversation.conversation_members?.find(
+            member => member.user_id !== user.id
+        );
+        return (
+            <Avatar
+                src={otherMember?.user?.image}
+                name={otherMember?.user?.name || 'User'}
+                size={32}
+            />
+        );
+    };
+
+    const handleOpenChatPopup = (conversationId) => {
+        setSelectedConversationId(conversationId);
+        setChatPopupOpen(true);
+    };
+
+    const handleCloseChatPopup = () => {
+        setChatPopupOpen(false);
+        setSelectedConversationId(null);
+    };
 
     useEffect(() => {
 
@@ -110,6 +191,8 @@ const Home = () => {
                         let likesData = [];
                         if (likesResponse.ok) {
                             likesData = await likesResponse.json();
+                            console.log('🔍 Likes data loaded:', likesData.length, 'likes');
+                            console.log('🔍 Current user:', user?.id);
                         }
 
                         // Load comments count cho tất cả posts
@@ -134,6 +217,12 @@ const Home = () => {
                             const postLikes = likesData.filter(like => like.postId === post.id);
                             const postComments = commentsData.filter(comment => comment.postId === post.id);
                             const isLiked = user ? postLikes.some(like => like.userId === user.id) : false;
+                            
+                            // Debug log cho từng post
+                            if (post.id === postsData[0]?.id) { // Chỉ log post đầu tiên để tránh spam
+                                console.log('🔍 Post:', post.id, 'likes:', postLikes.length, 'isLiked:', isLiked);
+                                console.log('🔍 Post likes:', postLikes);
+                            }
 
                             // Xử lý HTML tags trong body
                             const cleanBody = post.body ? post.body.replace(/<[^>]*>/g, '') : '';
@@ -164,7 +253,7 @@ const Home = () => {
                                 },
                                 postLikes: postLikes,
                                 comments: [{ count: postComments.length }],
-                                is_liked: isLiked,
+                                isLiked: isLiked,
                                 likes_count: postLikes.length,
                                 comments_count: postComments.length
                             };
@@ -196,7 +285,28 @@ const Home = () => {
         };
 
         loadPosts();
-    }, [currentPage, isLoadingPosts]); // Load lại khi currentPage thay đổi
+    }, [currentPage]); // Chỉ depend vào currentPage
+
+    // Load conversations khi user thay đổi
+    useEffect(() => {
+        if (user?.id) {
+            loadConversations(true); // Hiển thị loading lần đầu
+        }
+    }, [user?.id]);
+
+    // Polling để cập nhật conversations real time
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const pollInterval = setInterval(() => {
+            loadConversations(false); // Không hiển thị loading khi polling
+        }, 1000); // Poll mỗi 1 giây để real time
+
+        return () => {
+            clearInterval(pollInterval);
+        };
+    }, [user?.id]);
+
 
     // Scroll listener cho infinite scroll
     useEffect(() => {
@@ -242,9 +352,37 @@ const Home = () => {
     };
 
     const handleLike = async (postId) => {
-        if (liking) return;
+        console.log('🔍 handleLike called for post:', postId);
+        if (liking) {
+            console.log('🚫 Like blocked - already liking:', liking);
+            return;
+        }
 
         setLiking(postId);
+        
+        // Update UI ngay lập tức - optimistic update
+        setPosts(prevPosts =>
+            prevPosts.map(post => {
+                if (post.id === postId) {
+                    const isCurrentlyLiked = post.isLiked;
+                    const newIsLiked = !isCurrentlyLiked;
+                    const newLikesCount = isCurrentlyLiked ? post.likes_count - 1 : post.likes_count + 1;
+                    console.log('🔍 Optimistic update for postId', postId, ':', {
+                        wasLiked: isCurrentlyLiked,
+                        nowLiked: newIsLiked,
+                        oldCount: post.likes_count,
+                        newCount: newLikesCount
+                    });
+                    return {
+                        ...post,
+                        isLiked: newIsLiked,
+                        likes_count: newLikesCount
+                    };
+                }
+                return post;
+            })
+        );
+
         try {
             const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
 
@@ -261,9 +399,11 @@ const Home = () => {
 
             if (checkResponse.ok) {
                 const existingLikes = await checkResponse.json();
+                console.log('🔍 Existing likes for postId', postId, ':', existingLikes);
 
                 if (existingLikes.length > 0) {
                     // Unlike - xóa like
+                    console.log('🔍 Unlike: Deleting like with id:', existingLikes[0].id);
                     const deleteUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes?id=eq.${existingLikes[0].id}`;
                     const deleteResponse = await fetch(deleteUrl, {
                         method: 'DELETE',
@@ -275,23 +415,12 @@ const Home = () => {
                     });
 
                     if (deleteResponse.ok) {
-                        // Real-time update UI
-                        setPosts(prevPosts =>
-                            prevPosts.map(post => {
-                                if (post.id === postId) {
-                                    return {
-                                        ...post,
-                                        postLikes: post.postLikes.filter(like => like.userId !== user.id),
-                                        likes_count: post.likes_count - 1,
-                                        is_liked: false
-                                    };
-                                }
-                                return post;
-                            })
-                        );
+                        // UI đã được update rồi, không cần update lại
+                        console.log('✅ Unlike successful');
                     }
                 } else {
                     // Like - thêm like mới
+                    console.log('🔍 Like: Adding new like for postId', postId);
                     const addLikeUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes';
                     const addResponse = await fetch(addLikeUrl, {
                         method: 'POST',
@@ -307,290 +436,50 @@ const Home = () => {
                     });
 
                     if (addResponse.ok) {
-                        // Real-time update UI
-                        setPosts(prevPosts =>
-                            prevPosts.map(post => {
-                                if (post.id === postId) {
-                                    return {
-                                        ...post,
-                                        postLikes: [...post.postLikes, { userId: user.id, postId: postId }],
-                                        likes_count: post.likes_count + 1,
-                                        is_liked: true
-                                    };
-                                }
-                                return post;
-                            })
-                        );
+                        // UI đã được update rồi, không cần update lại
+                        console.log('✅ Like successful');
                     }
                 }
             }
         } catch (error) {
             console.error('❌ Error toggling like:', error);
+            // Rollback UI nếu API fail
+            setPosts(prevPosts =>
+                prevPosts.map(post => {
+                    if (post.id === postId) {
+                        const isCurrentlyLiked = post.isLiked;
+                        return {
+                            ...post,
+                            isLiked: !isCurrentlyLiked,
+                            likes_count: isCurrentlyLiked ? post.likes_count + 1 : post.likes_count - 1
+                        };
+                    }
+                    return post;
+                })
+            );
         } finally {
             setLiking(null);
         }
     };
 
-    const handleShowComments = async (postId) => {
-        if (showComments[postId]) {
-            // Đóng comments
-            setShowComments(prev => ({ ...prev, [postId]: false }));
+
+    const handleShowComments = (postId) => {
+        console.log('🔍 handleShowComments - postId:', postId);
+        console.log('🔍 handleShowComments - posts array:', posts);
+        
+        const post = posts.find(p => p.id === postId);
+        if (!post) {
+            console.error('❌ Post not found for postId:', postId);
             return;
         }
 
-        // Mở comments và load nếu chưa có
-        setShowComments(prev => ({ ...prev, [postId]: true }));
-
-        if (!comments[postId]) {
-            setLoadingComments(prev => ({ ...prev, [postId]: true }));
-            try {
-                const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-
-                // Load comments với user info
-                const commentsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/comments?postId=eq.${postId}&order=created_at.asc`;
-                const commentsResponse = await fetch(commentsUrl, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': apiKey,
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (commentsResponse.ok) {
-                    const commentsData = await commentsResponse.json();
-
-                    // Load users để map với comments
-                    const usersUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/users';
-                    const usersResponse = await fetch(usersUrl, {
-                        method: 'GET',
-                        headers: {
-                            'apikey': apiKey,
-                            'Authorization': `Bearer ${apiKey}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    let usersData = [];
-                    if (usersResponse.ok) {
-                        usersData = await usersResponse.json();
-                    }
-
-                    // Format comments với user info
-                    const formattedComments = commentsData.map(comment => {
-                        const user = usersData.find(u => u.id === comment.userId);
-                        return {
-                            ...comment,
-                            content: comment.content || comment.body || comment.text || 'Không có nội dung',
-                            user: {
-                                id: comment.userId,
-                                name: user?.name || 'Unknown User',
-                                image: user?.image || null
-                            }
-                        };
-                    });
-
-                    setComments(prev => ({ ...prev, [postId]: formattedComments }));
-
-                    // Test: Thêm comment giả để test hiển thị
-                    if (formattedComments.length === 0) {
-                        const testComment = {
-                            id: 'test-' + postId,
-                            content: 'Đây là comment test để kiểm tra hiển thị',
-                            userId: user.id,
-                            postId: postId,
-                            created_at: new Date().toISOString(),
-                            user: {
-                                id: user.id,
-                                name: user.name,
-                                image: user.image
-                            }
-                        };
-                        setComments(prev => ({ ...prev, [postId]: [testComment] }));
-                    }
-                }
-            } catch (error) {
-                console.error('❌ Error loading comments:', error);
-            } finally {
-                setLoadingComments(prev => ({ ...prev, [postId]: false }));
-            }
-        }
+        console.log('🔍 handleShowComments - found post:', post);
+        setSelectedPost(post);
+        setCommentModalOpen(true);
     };
 
-    const handleCommentChange = (postId, value) => {
-        setNewComment(prev => ({ ...prev, [postId]: value }));
-
-        // Auto-resize textarea
-        const textarea = document.querySelector(`textarea[data-post-id="${postId}"]`);
-        if (textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-        }
-    };
-
-    const handleSubmitComment = async (postId) => {
-        const commentText = newComment[postId]?.trim();
-
-        if (!commentText || !user) {
-            return;
-        }
-
-        setSubmittingComment(prev => ({ ...prev, [postId]: true }));
-
-        try {
-            const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-
-            // Lấy access token từ localStorage
-            const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
-            let accessToken = apiKey; // fallback
-
-            if (storedToken) {
-                try {
-                    const authData = JSON.parse(storedToken);
-                    accessToken = authData.access_token || apiKey;
-                } catch (e) {
-                }
-            }
-
-            const commentUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/comments';
-            const response = await fetch(commentUrl, {
-                method: 'POST',
-                headers: {
-                    'apikey': apiKey,
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify({
-                    postId: postId,
-                    userId: user.id,
-                    content: commentText,
-                    created_at: new Date().toISOString()
-                })
-            });
 
 
-            if (response.ok) {
-
-                // Test: Kiểm tra xem comment có thực sự được lưu không
-                setTimeout(async () => {
-                    try {
-                        const testUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/comments?postId=eq.${postId}&order=created_at.desc&limit=1`;
-                        const testResponse = await fetch(testUrl, {
-                            headers: {
-                                'apikey': apiKey,
-                                'Authorization': `Bearer ${accessToken}`,
-                                'Content-Type': 'application/json'
-                            }
-                        });
-
-                        if (testResponse.ok) {
-                            const testData = await testResponse.json();
-                        }
-                    } catch (testError) {
-                        console.error('❌ Test query failed:', testError);
-                    }
-                }, 2000);
-
-                // Tạo comment mới để thêm vào UI ngay lập tức
-                const newCommentData = {
-                    id: 'temp-' + Date.now(),
-                    postId: postId,
-                    userId: user.id,
-                    content: commentText,
-                    created_at: new Date().toISOString(),
-                    user: {
-                        id: user.id,
-                        name: user.name,
-                        image: user.image
-                    }
-                };
-
-
-                // Cập nhật comments state với hiệu ứng
-                setComments(prev => ({
-                    ...prev,
-                    [postId]: [...(prev[postId] || []), newCommentData]
-                }));
-
-                // Cập nhật comments count trong posts
-                setPosts(prevPosts =>
-                    prevPosts.map(post => {
-                        if (post.id === postId) {
-                            return {
-                                ...post,
-                                comments_count: (post.comments_count || 0) + 1
-                            };
-                        }
-                        return post;
-                    })
-                );
-
-
-                // Hiển thị thông báo thành công
-                const successMessage = document.createElement('div');
-                successMessage.textContent = '✅ Bình luận đã được gửi!';
-                successMessage.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: #10b981;
-                    color: white;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    font-weight: 500;
-                    z-index: 1000;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                    animation: slideInNotification 0.3s ease-out;
-                `;
-                document.body.appendChild(successMessage);
-
-                // Xóa thông báo sau 2 giây
-                setTimeout(() => {
-                    successMessage.remove();
-                }, 2000);
-
-                // Xóa input
-                setNewComment(prev => ({ ...prev, [postId]: '' }));
-
-                // Đóng khung bình luận sau khi gửi thành công
-                setTimeout(() => {
-                    setShowComments(prev => ({ ...prev, [postId]: false }));
-                }, 1000); // Đóng sau 1 giây để user thấy comment xuất hiện
-            } else {
-                const errorText = await response.text();
-                console.error('❌ Failed to submit comment:', response.status, response.statusText);
-                console.error('❌ Error details:', errorText);
-
-                // Hiển thị thông báo lỗi
-                const errorMessage = document.createElement('div');
-                errorMessage.textContent = '❌ Lỗi khi gửi bình luận!';
-                errorMessage.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: #ef4444;
-                    color: white;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    font-weight: 500;
-                    z-index: 1000;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                `;
-                document.body.appendChild(errorMessage);
-
-                setTimeout(() => {
-                    errorMessage.remove();
-                }, 3000);
-            }
-        } catch (error) {
-            console.error('❌ Error submitting comment:', error);
-        } finally {
-            setSubmittingComment(prev => ({ ...prev, [postId]: false }));
-        }
-    };
 
     const formatTime = (timestamp) => {
         const date = new Date(timestamp);
@@ -668,17 +557,17 @@ const Home = () => {
                         ) : (
                             posts.map((post) => (
                                 <div key={post.id} className="post-card">
-                                    <div className="post-header">
+                                    <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px'}}>
                                         <Avatar
                                             src={post.user?.image}
                                             name={post.user?.name}
                                             size={40}
                                         />
-                                        <div className="post-author-info">
-                                            <h4 className="post-author-name">
+                                        <div>
+                                            <h4 style={{margin: '0 0 0px 0', fontSize: '16px', fontWeight: '600', color: '#1c1e21'}}>
                                                 {post.user?.name || 'Unknown User'}
                                             </h4>
-                                            <span className="post-time">
+                                            <span style={{fontSize: '14px', color: '#65676b'}}>
                                                 {formatTime(post.created_at)}
                                             </span>
                                         </div>
@@ -703,7 +592,7 @@ const Home = () => {
                                         <div className="post-likes">
                                             {post.likes_count > 0 && (
                                                 <span className="likes-count">
-                                                    👍 {post.likes_count}
+                                                    <span className={`heart-icon ${post.isLiked ? 'liked' : ''}`}>♥</span> {post.likes_count}
                                                 </span>
                                             )}
                                         </div>
@@ -719,11 +608,20 @@ const Home = () => {
                                     <div className="post-actions">
                                         <button 
                                             className={`action-button like-btn ${post.isLiked ? 'liked' : ''}`}
-                                            onClick={() => handleLike(post.id)}
+                                            onClick={(e) => {
+                                                console.log('🔍 Like button clicked for post:', post.id, 'isLiked:', post.isLiked);
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleLike(post.id);
+                                            }}
                                             disabled={liking === post.id}
                                         >
                                             <span className="action-icon">
-                                                {post.isLiked ? '❤️' : '🤍'}
+                                                <span 
+                                                    className={`heart-icon ${post.isLiked ? 'liked' : ''}`}
+                                                >
+                                                    ♥
+                                                </span>
                                             </span>
                                             <span className="action-text">Thích</span>
                                         </button>
@@ -740,83 +638,6 @@ const Home = () => {
                                         </button>
                                     </div>
 
-                                    {/* Comments Section */}
-                                    {showComments[post.id] && (
-                                        <div className="comments-section">
-                                            <div className="comments-header">
-                                                <h4>Bình luận</h4>
-                                                <button 
-                                                    className="close-comments-btn"
-                                                    onClick={() => setShowComments(prev => ({ ...prev, [post.id]: false }))}
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                            
-                                            <div className="comment-input-section">
-                                                <div className="comment-input-header">
-                                                    <Avatar
-                                                        src={user?.image}
-                                                        name={user?.name}
-                                                        size={32}
-                                                    />
-                                                    <span className="comment-user-name">{user?.name}</span>
-                                                </div>
-                                                <div className="comment-input-wrapper">
-                                                    <textarea
-                                                        placeholder="Viết bình luận..."
-                                                        value={newComment[post.id] || ''}
-                                                        onChange={(e) => handleCommentChange(post.id, e.target.value)}
-                                                        className="comment-textarea"
-                                                        rows="2"
-                                                    />
-                                                    <button 
-                                                        className="comment-submit-btn"
-                                                        onClick={() => handleSubmitComment(post.id)}
-                                                        disabled={!newComment[post.id]?.trim() || submittingComment[post.id]}
-                                                    >
-                                                        {submittingComment[post.id] ? 'Đang gửi...' : 'Gửi'}
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {loadingComments[post.id] ? (
-                                                <div className="loading-comments">
-                                                    <div className="loading-spinner"></div>
-                                                    <p>Đang tải bình luận...</p>
-                                                </div>
-                                            ) : comments[post.id] && comments[post.id].length > 0 ? (
-                                                <div className="comments-list">
-                                                    {comments[post.id].map((comment, index) => (
-                                                        <div key={`comment-${comment.id}-${index}`} className="comment-item">
-                                                            <div className="comment-author">
-                                                                <Avatar
-                                                                    src={comment.user?.image}
-                                                                    name={comment.user?.name}
-                                                                    size={30}
-                                                                />
-                                                                <div className="comment-info">
-                                                                    <span className="comment-author-name">
-                                                                        {comment.user?.name || 'Unknown User'}
-                                                                    </span>
-                                                                    <span className="comment-time">
-                                                                        {formatTime(comment.created_at)}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="comment-content">
-                                                                <p>{comment.content || comment.body || comment.text || 'Không có nội dung'}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="no-comments">
-                                                    <p>Chưa có bình luận nào</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             ))
                         )}
@@ -844,48 +665,110 @@ const Home = () => {
                 <div className="right-sidebar-content">
                     <h3>Cuộc trò chuyện</h3>
                     <div className="conversations-list">
-                        <div className="conversation-item">
-                            <div className="conversation-avatar">
-                                <div className="avatar-placeholder">👤</div>
+                        {conversationsLoading ? (
+                            <div className="loading-conversations">
+                                <div className="loading-spinner">⏳</div>
+                                <p>Đang tải...</p>
                             </div>
-                            <div className="conversation-info">
-                                <div className="conversation-name">Người dùng 1</div>
-                                <div className="conversation-preview">Tin nhắn mới nhất...</div>
+                        ) : conversations.length === 0 ? (
+                            <div className="no-conversations">
+                                <div className="empty-icon">💬</div>
+                                <p>Chưa có cuộc trò chuyện nào</p>
                             </div>
-                            <div className="conversation-time">2h</div>
-                        </div>
-                        
-                        <div className="conversation-item">
-                            <div className="conversation-avatar">
-                                <div className="avatar-placeholder">👤</div>
-                            </div>
-                            <div className="conversation-info">
-                                <div className="conversation-name">Người dùng 2</div>
-                                <div className="conversation-preview">Đang hoạt động</div>
-                            </div>
-                            <div className="conversation-time">5h</div>
-                        </div>
-                        
-                        <div className="conversation-item">
-                            <div className="conversation-avatar">
-                                <div className="avatar-placeholder">👤</div>
-                            </div>
-                            <div className="conversation-info">
-                                <div className="conversation-name">Người dùng 3</div>
-                                <div className="conversation-preview">Hẹn gặp lại!</div>
-                            </div>
-                            <div className="conversation-time">1d</div>
-                        </div>
+                        ) : (
+                            conversations.map((conversation) => (
+                                <div
+                                    key={conversation.id}
+                                    className="conversation-item"
+                                    onClick={() => handleOpenChatPopup(conversation.id)}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <div className="conversation-avatar">
+                                        {getConversationAvatar(conversation)}
+                                    </div>
+                                    <div className="conversation-info">
+                                        <div className="conversation-name">
+                                            {getConversationName(conversation)}
+                                        </div>
+                                        <div className="conversation-preview">
+                                            {(() => {
+                                                console.log('🔍 Conversation data:', conversation);
+                                                console.log('🔍 Last message:', conversation.last_message);
+                                                console.log('🔍 Messages array:', conversation.messages);
+                                                
+                                                if (conversation.last_message) {
+                                                    return (
+                                                        <>
+                                                            <span className="conversation-sender">
+                                                                {conversation.last_message.sender?.name || 'Người dùng'}: 
+                                                            </span>
+                                                            <span className="conversation-content">
+                                                                {conversation.last_message.content}
+                                                            </span>
+                                                        </>
+                                                    );
+                                                } else if (conversation.messages && conversation.messages.length > 0) {
+                                                    const lastMsg = conversation.messages[conversation.messages.length - 1];
+                                                    console.log('🔍 Using last message from messages array:', lastMsg);
+                                                    return (
+                                                        <>
+                                                            <span className="conversation-sender">
+                                                                {lastMsg.sender?.name || 'Người dùng'}: 
+                                                            </span>
+                                                            <span className="conversation-content">
+                                                                {lastMsg.content}
+                                                            </span>
+                                                        </>
+                                                    );
+                                                } else {
+                                                    return 'Chưa có tin nhắn';
+                                                }
+                                            })()}
+                                        </div>
+                                    </div>
+                                    <div className="conversation-time">
+                                        {conversation.last_message?.created_at 
+                                            ? formatConversationTime(conversation.last_message.created_at)
+                                            : formatConversationTime(conversation.updated_at)
+                                        }
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                     
                     <div className="right-sidebar-footer">
-                        <button className="new-chat-btn">
+                        <button 
+                            className="new-chat-btn"
+                            onClick={() => navigate('/chat')}
+                        >
                             <span className="btn-icon">💬</span>
-                            <span>Tạo cuộc trò chuyện</span>
+                            <span>Xem tất cả</span>
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* Chat Popup */}
+            {chatPopupOpen && (
+                <ChatPopup
+                    conversationId={selectedConversationId}
+                    onClose={handleCloseChatPopup}
+                />
+            )}
+
+            {/* Comment Modal */}
+            {commentModalOpen && selectedPost && (
+                <CommentModal
+                    isOpen={commentModalOpen}
+                    onClose={() => {
+                        setCommentModalOpen(false);
+                        setSelectedPost(null);
+                    }}
+                    post={selectedPost}
+                    currentUser={user}
+                />
+            )}
         </div>
     );
 };

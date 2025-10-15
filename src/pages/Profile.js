@@ -6,6 +6,7 @@ import { getUserImageSrc } from '../services/imageService';
 import './Profile.css';
 
 const Profile = () => {
+    const navigate = useNavigate();
     const { user, setUserData, signOut } = useAuth();
     const [editing, setEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -26,9 +27,19 @@ const Profile = () => {
     const isProcessingRef = useRef(false);
     const lastLoadTimeRef = useRef(0);
     const initialLoadRef = useRef(false);
-    const scrollPositionRef = useRef(0);
-    const postsContainerRef = useRef(null);
-    
+    const loadMoreRef = useRef(null);
+
+    // Refs để tránh stale state trong IntersectionObserver
+    const hasMoreRef = useRef(hasMore);
+    const isLoadingMoreRef = useRef(isLoadingMore);
+    const postsLoadingRef = useRef(postsLoading);
+
+    // Refs giữ khoảng cách với đáy trang khi load thêm
+    const preserveFromBottomRef = useRef(null); // số px cách đáy trước khi append
+
+    useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
+    useEffect(() => { isLoadingMoreRef.current = isLoadingMore; }, [isLoadingMore]);
+    useEffect(() => { postsLoadingRef.current = postsLoading; }, [postsLoading]);
 
     useEffect(() => {
         if (user) {
@@ -49,8 +60,8 @@ const Profile = () => {
     const loadUserPosts = async (loadMore = false) => {
         const now = Date.now();
         
-        // Ngăn chặn multiple calls trong vòng 2 giây
-        if (now - lastLoadTimeRef.current < 2000) {
+        // Ngăn chặn multiple calls trong vòng 0.8 giây
+        if (now - lastLoadTimeRef.current < 800) {
             console.log('🚫 Load blocked - too soon:', now - lastLoadTimeRef.current, 'ms ago');
             return;
         }
@@ -59,12 +70,17 @@ const Profile = () => {
 
         lastLoadTimeRef.current = now;
         isLoadingRef.current = true;
-        setPostsLoading(true);
+        // Chỉ hiển thị loading overlay cho lần tải đầu, không cho loadMore
+        setPostsLoading(!loadMore);
         try {
             const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
 
-            // Load posts của user từ REST API
-            const postsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/posts?userId=eq.${user.id}&order=created_at.desc&limit=${postsLimit}`;
+            // Tính offset theo số bài hiện có
+            const pageSize = postsLimit; // giữ cố định 4
+            const offset = loadMore ? userPosts.length : 0;
+
+            // Load posts của user từ REST API (limit + offset)
+            const postsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/posts?userId=eq.${user.id}&order=created_at.desc&limit=${pageSize}&offset=${offset}`;
             const postsResponse = await fetch(postsUrl, {
                 method: 'GET',
                 headers: {
@@ -76,7 +92,7 @@ const Profile = () => {
 
             if (postsResponse.ok) {
                 const postsData = await postsResponse.json();
-                console.log('✅ User posts loaded:', postsData.length);
+                console.log('✅ User posts loaded:', postsData.length, 'offset:', offset);
 
                 // Load likes và comments
                 const likesUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes';
@@ -180,22 +196,20 @@ const Profile = () => {
                 }));
 
                 if (loadMore) {
-                    // Lưu scroll position trước khi update (theo StackOverflow solution)
-                    scrollPositionRef.current = window.pageYOffset;
-                    console.log('📍 Saved scroll position:', scrollPositionRef.current);
-                    
-                    // Update posts
+                    // Append posts to existing list
                     setUserPosts(prev => [...prev, ...formattedPosts]);
                 } else {
+                    // Replace posts for initial load
                     setUserPosts(formattedPosts);
                 }
 
-                setHasMore(formattedPosts.length === postsLimit);
-                setPostsLimit(prev => prev + 4);
+                // hasMore: còn nữa khi trả về đủ pageSize
+                setHasMore(postsData.length === pageSize);
             }
         } catch (error) {
             console.error('Error loading user posts:', error);
         } finally {
+            // Kết thúc trạng thái loading
             setPostsLoading(false);
             setIsLoadingMore(false);
             isLoadingRef.current = false;
@@ -205,17 +219,16 @@ const Profile = () => {
 
     const handleLoadMore = () => {
         if (!postsLoading && !isLoadingMore && hasMore && !isProcessingRef.current) {
-            console.log('🔄 Loading more posts...');
+            // Lưu khoảng cách so với đáy trước khi load để tránh nhảy
+            const scrollHeight = document.documentElement.scrollHeight;
+            const scrollY = window.pageYOffset;
+            preserveFromBottomRef.current = scrollHeight - scrollY;
+            console.log('📌 Preserve distance from bottom:', preserveFromBottomRef.current);
+
+            console.log('🔄 Loading more posts via IntersectionObserver...');
             isProcessingRef.current = true;
             setIsLoadingMore(true);
             loadUserPosts(true);
-        } else {
-            console.log('🚫 Load more blocked:', {
-                postsLoading,
-                isLoadingMore,
-                hasMore,
-                isProcessing: isProcessingRef.current
-            });
         }
     };
 
@@ -223,16 +236,51 @@ const Profile = () => {
 
 
 
-    // Restore scroll position sau khi userPosts update (theo StackOverflow solution)
-    useLayoutEffect(() => {
-        if (scrollPositionRef.current > 0) {
-            console.log('🔄 Restoring scroll position:', scrollPositionRef.current);
-            window.scrollTo({
-                top: scrollPositionRef.current,
-                behavior: 'instant'
-            });
-            console.log('✅ Scroll position restored');
-        }
+    // IntersectionObserver để tự động load more khi scroll đến cuối
+    useEffect(() => {
+        const el = loadMoreRef.current;
+        if (!el) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    const canLoad = hasMoreRef.current && !isLoadingMoreRef.current && !postsLoadingRef.current && !isProcessingRef.current;
+                    if (canLoad) {
+                        console.log('🔍 IntersectionObserver triggered - loading more posts');
+                        handleLoadMore();
+                    }
+                }
+            },
+            { 
+                threshold: 0.1,
+                rootMargin: '400px' // Prefetch sớm hơn
+            }
+        );
+
+        observer.observe(el);
+        console.log('👁️ IntersectionObserver attached to loadMoreRef');
+
+        return () => {
+            observer.unobserve(el);
+            observer.disconnect();
+            console.log('👁️ IntersectionObserver disconnected');
+        };
+    }, [hasMore, userPosts.length]);
+
+    // Nếu nội dung chưa đủ cao để có thể scroll, tự động load thêm cho đủ màn hình
+    useEffect(() => {
+        const ensureFilledViewport = () => {
+            const pageHeight = document.documentElement.scrollHeight;
+            const viewportHeight = window.innerHeight;
+            const canLoad = hasMoreRef.current && !isLoadingMoreRef.current && !postsLoadingRef.current && !isProcessingRef.current;
+            if (pageHeight <= viewportHeight + 40 && canLoad) {
+                console.log('⬇️ Content below viewport height, auto-loading more');
+                handleLoadMore();
+            }
+        };
+        // chạy sau render
+        const id = requestAnimationFrame(ensureFilledViewport);
+        return () => cancelAnimationFrame(id);
     }, [userPosts.length]);
 
     useEffect(() => {
@@ -243,6 +291,17 @@ const Profile = () => {
             loadUserPosts();
         }
     }, [user?.id]); // Chỉ depend vào user?.id
+
+    // Sau khi số lượng posts thay đổi và loadMore kết thúc, khôi phục vị trí theo khoảng cách với đáy
+    useLayoutEffect(() => {
+        if (!isLoadingMoreRef.current && preserveFromBottomRef.current != null) {
+            const newScrollHeight = document.documentElement.scrollHeight;
+            const newScrollTop = newScrollHeight - preserveFromBottomRef.current;
+            window.scrollTo({ top: newScrollTop, behavior: 'instant' });
+            console.log('🎯 Restored position keeping bottom distance. New top:', newScrollTop);
+            preserveFromBottomRef.current = null;
+        }
+    }, [userPosts.length, isLoadingMore]);
 
     const handleSave = async () => {
         if (!formData.name.trim()) return;
@@ -305,7 +364,15 @@ const Profile = () => {
     return (
         <div className="profile-container">
             <div className="profile-header">
-                <h2>Hồ sơ cá nhân</h2>
+                <div className="profile-header-top">
+                    <button 
+                        className="btn btn-secondary back-button"
+                        onClick={() => navigate('/')}
+                    >
+                        ← Quay lại
+                    </button>
+                    <h2>Hồ sơ cá nhân</h2>
+                </div>
             </div>
 
             <div className="profile-content">
@@ -521,8 +588,8 @@ const Profile = () => {
                                 </div>
                             ))}
                             
-                            {/* Loading indicator cho infinite scroll */}
-                            {isLoadingMore && (
+                            {/* Loading indicator cho infinite scroll - chỉ hiển thị khi không có trigger */}
+                            {isLoadingMore && !hasMore && (
                                 <div className="infinite-loading">
                                     <div className="loading-spinner">⏳</div>
                                     <p>Đang tải thêm bài đăng...</p>
@@ -536,22 +603,26 @@ const Profile = () => {
                                 </div>
                             )}
                             
-                            {/* Load More Button */}
-                            {hasMore && !isLoadingMore && (
-                                <div className="load-more-container">
-                                    <button 
-                                        className="btn btn-primary load-more-btn"
-                                        onClick={() => {
-                                            console.log('🔄 Load More button clicked');
-                                            if (!isProcessingRef.current) {
-                                                isProcessingRef.current = true;
-                                                setIsLoadingMore(true);
-                                                loadUserPosts(true);
-                                            }
-                                        }}
-                                    >
-                                        📜 Xem thêm bài đăng
-                                    </button>
+                            {/* IntersectionObserver Trigger */}
+                            {hasMore && (
+                                <div 
+                                    ref={loadMoreRef} 
+                                    className="load-more-trigger"
+                                    style={{
+                                        height: '20px',
+                                        width: '100%',
+                                        margin: '20px 0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    {isLoadingMore && (
+                                        <div className="loading-indicator">
+                                            <div className="loading-spinner">⏳</div>
+                                            <p>Đang tải thêm bài đăng...</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

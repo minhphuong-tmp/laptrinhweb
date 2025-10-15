@@ -102,6 +102,16 @@
     text-align: center;
 }
 
+/* Notification Container */
+.notification-container {
+    position: relative;
+}
+
+/* Message Container */
+.message-container {
+    position: relative;
+}
+
 /* User Menu */
 .user-menu-container {
     position: relative;
@@ -150,6 +160,7 @@
     font-weight: 600;
     color: #1c1e21;
     margin-right: 4px;
+    margin-left: 8px; /* Khoảng cách từ avatar */
 }
 
 .dropdown-arrow {

@@ -10,7 +10,6 @@ const Sidebar = () => {
         { path: '/', icon: '🏠', label: 'Trang chủ', active: location.pathname === '/' },
         { path: '/posts', icon: '📝', label: 'Bài viết', active: location.pathname === '/posts' },
         { path: '/todo', icon: '📋', label: 'Ghi chú', active: location.pathname === '/todo' },
-        { path: '/chat', icon: '💬', label: 'Tin nhắn', active: location.pathname === '/chat' },
         { path: '/stats', icon: '📊', label: 'Thống kê', active: location.pathname === '/stats' },
     ];
 

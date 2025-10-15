@@ -108,10 +108,11 @@
 }
 
 .post-media {
-    width: 100%;
+    width: 100% !important;
     border-radius: 8px;
-    max-height: 400px;
-    object-fit: cover;
+    max-height: 800px !important;
+    object-fit: contain !important;
+    background-color: #f8f9fa;
 }
 
 .post-video {

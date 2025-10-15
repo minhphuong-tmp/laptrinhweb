@@ -1,4 +1,11 @@
+.facebook-layout {
+    display: flex;
+    min-height: 100vh;
+    background: #f0f2f5;
+}
+
 .chat-container {
+    flex: 1;
     display: flex;
     flex-direction: column;
     height: 100vh;

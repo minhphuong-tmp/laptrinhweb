@@ -33,25 +33,35 @@ const Chat = () => {
 
     const loadConversation = async () => {
         try {
+            console.log('🔍 Loading conversation with ID:', id);
             const result = await getConversationById(id);
+            console.log('📊 Conversation result:', result);
             if (result.success) {
                 setConversation(result.data);
+                console.log('✅ Conversation loaded:', result.data);
+            } else {
+                console.error('❌ Failed to load conversation:', result.msg);
             }
         } catch (error) {
-            console.error('Error loading conversation:', error);
+            console.error('❌ Error loading conversation:', error);
         }
     };
 
     const loadMessages = async () => {
         try {
+            console.log('💬 Loading messages for conversation:', id);
             const result = await getMessages(id);
+            console.log('📨 Messages result:', result);
             if (result.success) {
                 setMessages(result.data);
+                console.log('✅ Messages loaded:', result.data.length, 'messages');
                 // Đánh dấu đã đọc
                 await markConversationAsRead(id, user.id);
+            } else {
+                console.error('❌ Failed to load messages:', result.msg);
             }
         } catch (error) {
-            console.error('Error loading messages:', error);
+            console.error('❌ Error loading messages:', error);
         } finally {
             setLoading(false);
         }
@@ -138,14 +148,17 @@ const Chat = () => {
 
     if (loading) {
         return (
-            <div className="chat-container">
-                <div className="loading">Đang tải...</div>
+            <div className="facebook-layout">
+                <div className="chat-container">
+                    <div className="loading">Đang tải...</div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="chat-container">
+        <div className="facebook-layout">
+            <div className="chat-container">
             <header className="chat-header">
                 <Link to="/chat" className="back-button">
                     ← Quay lại
@@ -212,6 +225,7 @@ const Chat = () => {
                     </button>
                 </div>
             </form>
+            </div>
         </div>
     );
 };

@@ -159,9 +159,11 @@
 }
 
 .post-image {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
+    width: 100% !important;
+    max-width: 614px !important;
+    height: auto !important;
+    margin: 20px auto !important;
+    object-fit: contain !important;
     border-radius: var(--radius-sm);
     margin-top: var(--spacing-sm);
 }
