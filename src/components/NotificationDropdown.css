@@ -136,6 +136,49 @@
     overflow: hidden;
 }
 
+.notification-view-more {
+    padding: 12px 16px;
+    border-top: 1px solid #eee;
+    background-color: #f8f9fa;
+}
+
+.view-more-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background-color: #1877f2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.view-more-btn:hover {
+    background-color: #166fe5;
+}
+
+.view-more-btn:active {
+    background-color: #1461d1;
+}
+
+.view-more-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.loading-spinner-small {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+    display: inline-block;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     .notification-dropdown {

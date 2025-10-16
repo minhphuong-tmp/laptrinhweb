@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { fetchAllPosts } from '../services/postsService';
 import { getUserImageSrc } from '../services/imageService';
 import { getConversations } from '../services/chatService';
+import { getAllUnreadMessageCounts, markConversationAsRead } from '../services/unreadMessagesService';
 import './Home.css';
 import './FacebookLayout.css';
 
@@ -38,6 +39,8 @@ const Home = () => {
     const [hasMorePosts, setHasMorePosts] = useState(true);
     const [commentModalOpen, setCommentModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState(null);
+    const [unreadCounts, setUnreadCounts] = useState({});
+    const [totalUnreadCount, setTotalUnreadCount] = useState(0);
     const postsPerPage = 15;
 
     // Load conversations cho right sidebar
@@ -51,6 +54,8 @@ const Home = () => {
             const result = await getConversations(user.id);
             if (result.success) {
                 setConversations(result.data.slice(0, 5)); // Chỉ hiển thị 5 cuộc trò chuyện gần nhất
+                // Load unread counts sau khi load conversations
+                loadUnreadCounts();
             }
         } catch (error) {
             console.error('Error loading conversations:', error);
@@ -60,6 +65,25 @@ const Home = () => {
             }
         }
     };
+
+    // Load unread message counts
+    const loadUnreadCounts = async () => {
+        if (!user?.id) return;
+        
+        try {
+            const counts = await getAllUnreadMessageCounts(user.id);
+            setUnreadCounts(counts);
+            
+            // Tính tổng số tin nhắn chưa đọc
+            const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+            setTotalUnreadCount(total);
+            
+            console.log('📊 Unread counts loaded:', counts, 'Total:', total);
+        } catch (error) {
+            console.error('Error loading unread counts:', error);
+        }
+    };
+
 
     const formatConversationTime = (timestamp) => {
         const date = new Date(timestamp);
@@ -107,9 +131,24 @@ const Home = () => {
         );
     };
 
-    const handleOpenChatPopup = (conversationId) => {
+    const handleOpenChatPopup = async (conversationId) => {
         setSelectedConversationId(conversationId);
         setChatPopupOpen(true);
+        
+        // Đánh dấu conversation là đã đọc
+        try {
+            await markConversationAsRead(conversationId, user.id);
+            // Cập nhật unread counts
+            setUnreadCounts(prev => ({
+                ...prev,
+                [conversationId]: 0
+            }));
+            // Cập nhật tổng unread count
+            setTotalUnreadCount(prev => prev - (prev[conversationId] || 0));
+            console.log('✅ Marked conversation as read:', conversationId);
+        } catch (error) {
+            console.error('Error marking conversation as read:', error);
+        }
     };
 
     const handleCloseChatPopup = () => {
@@ -316,6 +355,19 @@ const Home = () => {
         };
     }, [user?.id]);
 
+    // Polling để cập nhật unread counts
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const unreadPolling = setInterval(() => {
+            loadUnreadCounts();
+        }, 5000); // Poll mỗi 5 giây
+
+        return () => {
+            clearInterval(unreadPolling);
+        };
+    }, [user?.id]);
+
 
     // Scroll listener cho infinite scroll
     useEffect(() => {
@@ -505,7 +557,7 @@ const Home = () => {
         return (
             <div className="facebook-layout">
                 <Sidebar />
-                <TopBar />
+                <TopBar totalUnreadCount={totalUnreadCount} />
                 <div className="main-content">
                     <div className="content-wrapper">
                         <div className="loading">Đang tải bài viết...</div>
@@ -518,7 +570,7 @@ const Home = () => {
     return (
         <div className="facebook-layout">
             <Sidebar />
-            <TopBar />
+            <TopBar totalUnreadCount={totalUnreadCount} />
             <div className="main-content">
                 <div className="content-wrapper">
                     {/* Create Post Section */}
@@ -673,7 +725,9 @@ const Home = () => {
             <div className="right-sidebar">
                 <div className="right-sidebar-content">
                     <div className="sidebar-header">
-                        <h3>Cuộc trò chuyện</h3>
+                        <div className="sidebar-title">
+                            <h3>Cuộc trò chuyện</h3>
+                        </div>
                         <button 
                             className="create-group-btn"
                             onClick={() => navigate('/new-chat')}
@@ -739,11 +793,18 @@ const Home = () => {
                                             })()}
                                         </div>
                                     </div>
-                                    <div className="conversation-time">
-                                        {conversation.last_message?.created_at 
-                                            ? formatConversationTime(conversation.last_message.created_at)
-                                            : formatConversationTime(conversation.updated_at)
-                                        }
+                                    <div className="conversation-right">
+                                        <div className="conversation-time">
+                                            {conversation.last_message?.created_at 
+                                                ? formatConversationTime(conversation.last_message.created_at)
+                                                : formatConversationTime(conversation.updated_at)
+                                            }
+                                        </div>
+                                        {unreadCounts[conversation.id] > 0 && (
+                                            <div className="unread-badge">
+                                                {unreadCounts[conversation.id] > 99 ? '99+' : unreadCounts[conversation.id]}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))

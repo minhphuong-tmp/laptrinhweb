@@ -10,27 +10,94 @@ const NotificationDropdown = ({ isOpen, onClose, onNotificationRead }) => {
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
     const dropdownRef = useRef(null);
 
 
     useEffect(() => {
         if (isOpen && user) {
-            loadNotifications();
+            // Reset state when opening dropdown
+            setNotifications([]);
+            setCurrentPage(1);
+            setHasMore(true); // Always start with true
+            console.log('🔄 Opening dropdown, resetting state');
+            loadNotifications(1);
         }
     }, [isOpen, user]);
 
-    const loadNotifications = async () => {
+    const loadNotifications = async (page = 1, append = false) => {
         if (!user) return;
         
-        setLoading(true);
+        if (page === 1) {
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
+        
         try {
-            const data = await getUserNotifications(user.id);
-            setNotifications(data || []);
+            const data = await getUserNotifications(user.id, page);
+            if (append) {
+                setNotifications(prev => [...prev, ...(data || [])]);
+            } else {
+                setNotifications(data || []);
+            }
+            
+            // Check if there are more notifications (assuming 20 per page)
+            const dataLength = (data || []).length;
+            const hasMoreData = dataLength >= 20;
+            
+            // For first page, always assume there might be more unless we get less than 20
+            if (page === 1) {
+                setHasMore(dataLength >= 20 || dataLength > 0);
+            } else {
+                setHasMore(hasMoreData);
+            }
+            
+            console.log('📊 Notifications loaded:', {
+                page,
+                count: dataLength,
+                hasMore: hasMoreData,
+                finalHasMore: page === 1 ? (dataLength >= 20 || dataLength > 0) : hasMoreData,
+                totalNotifications: append ? notifications.length + dataLength : dataLength
+            });
         } catch (error) {
             console.error('Error loading notifications:', error);
-            setNotifications([]);
+            if (!append) {
+                setNotifications([]);
+            }
         } finally {
             setLoading(false);
+            setLoadingMore(false);
+        }
+    };
+
+    const handleLoadMore = async () => {
+        const nextPage = currentPage + 1;
+        setCurrentPage(nextPage);
+        setLoadingMore(true);
+        
+        try {
+            const data = await getUserNotifications(user.id, nextPage);
+            
+            if (data && data.length > 0) {
+                setNotifications(prev => [...prev, ...data]);
+                setHasMore(data.length >= 20);
+                console.log('📄 Loaded more notifications:', {
+                    page: nextPage,
+                    count: data.length,
+                    hasMore: data.length >= 20
+                });
+            } else {
+                setHasMore(false);
+                console.log('📭 No more notifications available');
+            }
+        } catch (error) {
+            console.error('Error loading more notifications:', error);
+            setHasMore(false);
+        } finally {
+            setLoadingMore(false);
         }
     };
 
@@ -169,31 +236,59 @@ const NotificationDropdown = ({ isOpen, onClose, onNotificationRead }) => {
                         <p>Chưa có thông báo nào</p>
                     </div>
                 ) : (
-                    notifications.map((notification) => (
-                        <div 
-                            key={notification.id} 
-                            className={`notification-item ${notification.data?.is_read ? 'read' : 'unread'}`}
-                            onClick={() => handleNotificationClick(notification)}
-                        >
-                            <div className="notification-avatar">
-                                {notification.sender?.image ? (
-                                    <Avatar 
-                                        src={notification.sender.image} 
-                                        name={notification.sender.name}
-                                        size={32}
-                                    />
-                                ) : (
-                                    <span>{getNotificationIcon(notification.title)}</span>
-                                )}
+                    <>
+                        {notifications.map((notification) => (
+                            <div 
+                                key={notification.id} 
+                                className={`notification-item ${notification.data?.is_read ? 'read' : 'unread'}`}
+                                onClick={() => handleNotificationClick(notification)}
+                            >
+                                <div className="notification-avatar">
+                                    {notification.sender?.image ? (
+                                        <Avatar 
+                                            src={notification.sender.image} 
+                                            name={notification.sender.name}
+                                            size={32}
+                                        />
+                                    ) : (
+                                        <span>{getNotificationIcon(notification.title)}</span>
+                                    )}
+                                </div>
+                                <div className="notification-text">
+                                    <p>{getNotificationText(notification)}</p>
+                                    <span className="notification-time">
+                                        {formatTime(notification.created_at)}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="notification-text">
-                                <p>{getNotificationText(notification)}</p>
-                                <span className="notification-time">
-                                    {formatTime(notification.created_at)}
-                                </span>
+                        ))}
+                        {notifications.length > 0 && (
+                            <div className="notification-view-more">
+                                {console.log('🔘 Button state:', {
+                                    notificationsLength: notifications.length,
+                                    hasMore,
+                                    loadingMore,
+                                    showButton: notifications.length > 0
+                                })}
+                                <button 
+                                    className="view-more-btn"
+                                    onClick={handleLoadMore}
+                                    disabled={loadingMore || !hasMore}
+                                >
+                                    {loadingMore ? (
+                                        <>
+                                            <div className="loading-spinner-small"></div>
+                                            Đang tải...
+                                        </>
+                                    ) : hasMore ? (
+                                        'Xem thêm thông báo'
+                                    ) : (
+                                        'Đã xem hết thông báo'
+                                    )}
+                                </button>
                             </div>
-                        </div>
-                    ))
+                        )}
+                    </>
                 )}
             </div>
         </div>

@@ -27,7 +27,7 @@ export const createNotification = async (notificationData) => {
     }
 };
 
-export const getUserNotifications = async (userId) => {
+export const getUserNotifications = async (userId, page = 1) => {
     try {
         // Check if notifications table exists first
         const testResponse = await fetch(`${API_URL}/notifications?limit=1`, {
@@ -44,9 +44,13 @@ export const getUserNotifications = async (userId) => {
             return getMockNotifications();
         }
 
+        // Calculate offset for pagination
+        const limit = 20;
+        const offset = (page - 1) * limit;
+
         // Try to get notifications with join
         const response = await fetch(
-            `${API_URL}/notifications?receiverId=eq.${userId}&select=*,sender:senderId(id,name,image)&order=created_at.desc&limit=20`,
+            `${API_URL}/notifications?receiverId=eq.${userId}&select=*,sender:senderId(id,name,image)&order=created_at.desc&limit=${limit}&offset=${offset}`,
             {
                 method: 'GET',
                 headers: {
