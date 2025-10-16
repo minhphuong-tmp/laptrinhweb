@@ -5,7 +5,7 @@
     top: 0;
     width: 280px;
     height: 100vh;
-    background: linear-gradient(135deg, #1877f2, #42a5f5);
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
     color: white;
     display: flex;
     flex-direction: column;
@@ -30,6 +30,70 @@
     padding: 20px 0;
 }
 
+/* CLB Tin học KMA Section */
+.clb-section {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+}
+
+.clb-header {
+    padding: 0 20px 15px 20px;
+}
+
+.clb-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.clb-nav {
+    padding: 0;
+}
+
+.clb-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    margin: 4px 0;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-radius: 0 25px 25px 0;
+    margin-right: 20px;
+    border-left: 3px solid transparent;
+}
+
+.clb-nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateX(5px);
+    border-left-color: #ffffff;
+}
+
+.clb-nav-item.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-left-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clb-nav-icon {
+    font-size: 18px;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+}
+
+.clb-nav-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
 .nav-item {
     display: flex;
     align-items: center;
@@ -43,7 +107,7 @@
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     color: white;
     transform: translateX(5px);
 }
@@ -72,6 +136,7 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    margin-top: auto;
 }
 
 .user-info {

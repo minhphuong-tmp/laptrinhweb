@@ -16,6 +16,17 @@ import PostDetails from './pages/PostDetails';
 import SignUp from './pages/SignUp';
 import Stats from './pages/Stats';
 import Todo from './pages/Todo';
+// CLB Tin học KMA pages
+import Members from './pages/Members';
+import Activities from './pages/Activities';
+import Documents from './pages/Documents';
+import Statistics from './pages/Statistics';
+import Announcements from './pages/Announcements';
+import Calendar from './pages/Calendar';
+import Leaderboard from './pages/Leaderboard';
+import MeetingNotes from './pages/MeetingNotes';
+import Finance from './pages/Finance';
+import Support from './pages/Support';
 
 function App() {
     return (
@@ -38,6 +49,17 @@ function App() {
                             <Route path="/chat" element={<ProtectedRoute><ChatList /></ProtectedRoute>} />
                             <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                             <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
+                            {/* CLB Tin học KMA routes */}
+                            <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+                            <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
+                            <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+                            <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
+                            <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
+                            <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+                            <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+                            <Route path="/meeting-notes" element={<ProtectedRoute><MeetingNotes /></ProtectedRoute>} />
+                            <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+                            <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                         </Routes>
                     </div>
                 </Router>
@@ -63,7 +85,7 @@ function ProtectedRoute({ children }) {
     }
 
     // Các trang không cần Header (đã có Sidebar và TopBar)
-    const pagesWithoutHeader = ['/', '/home', '/posts', '/todo', '/stats', '/profile', '/chat'];
+    const pagesWithoutHeader = ['/', '/home', '/posts', '/todo', '/stats', '/profile', '/chat', '/members', '/activities', '/documents', '/statistics', '/announcements', '/calendar', '/leaderboard', '/meeting-notes', '/finance', '/support'];
     const currentPath = window.location.pathname;
     const needsHeader = !pagesWithoutHeader.includes(currentPath);
 

@@ -11,11 +11,20 @@ const Sidebar = () => {
     const [userImageUrl, setUserImageUrl] = useState(null);
     const [imageLoading, setImageLoading] = useState(false);
 
-    const menuItems = [
+    // CLB Tin học KMA - 12 chức năng
+    const clbMenuItems = [
         { path: '/', icon: '🏠', label: 'Trang chủ', active: location.pathname === '/' },
         { path: '/posts', icon: '📝', label: 'Bài viết', active: location.pathname === '/posts' },
-        { path: '/todo', icon: '📋', label: 'Ghi chú', active: location.pathname === '/todo' },
-        { path: '/stats', icon: '📊', label: 'Thống kê', active: location.pathname === '/stats' },
+        { path: '/members', icon: '👥', label: 'Thành viên', active: location.pathname === '/members' },
+        { path: '/activities', icon: '📅', label: 'Hoạt động', active: location.pathname === '/activities' },
+        { path: '/documents', icon: '📚', label: 'Tài liệu', active: location.pathname === '/documents' },
+        { path: '/statistics', icon: '📈', label: 'Thống kê', active: location.pathname === '/statistics' },
+        { path: '/announcements', icon: '📢', label: 'Thông báo CLB', active: location.pathname === '/announcements' },
+        { path: '/calendar', icon: '📋', label: 'Lịch sự kiện', active: location.pathname === '/calendar' },
+        { path: '/leaderboard', icon: '🏆', label: 'Bảng xếp hạng', active: location.pathname === '/leaderboard' },
+        { path: '/meeting-notes', icon: '📝', label: 'Biên bản họp', active: location.pathname === '/meeting-notes' },
+        { path: '/finance', icon: '💰', label: 'Quản lý tài chính', active: location.pathname === '/finance' },
+        { path: '/support', icon: '📞', label: 'Liên hệ & Hỗ trợ', active: location.pathname === '/support' },
     ];
 
     // Load user image
@@ -46,18 +55,24 @@ const Sidebar = () => {
                 <h2>LinkUp</h2>
             </div>
             
-            <nav className="sidebar-nav">
-                {menuItems.map((item) => (
-                    <Link
-                        key={item.path}
-                        to={item.path}
-                        className={`nav-item ${item.active ? 'active' : ''}`}
-                    >
-                        <span className="nav-icon">{item.icon}</span>
-                        <span className="nav-label">{item.label}</span>
-                    </Link>
-                ))}
-            </nav>
+            {/* CLB Tin học KMA - 12 chức năng */}
+            <div className="clb-section">
+                <div className="clb-header">
+                    <h3>CLB Tin học KMA</h3>
+                </div>
+                <nav className="clb-nav">
+                    {clbMenuItems.map((item) => (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`clb-nav-item ${item.active ? 'active' : ''}`}
+                        >
+                            <span className="clb-nav-icon">{item.icon}</span>
+                            <span className="clb-nav-label">{item.label}</span>
+                        </Link>
+                    ))}
+                </nav>
+            </div>
 
             <div className="sidebar-footer">
                 <div className="user-info">

@@ -6,6 +6,7 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import ChatPopup from '../components/ChatPopup';
 import CommentModal from '../components/CommentModal';
+import CreatePostModal from '../components/CreatePostModal';
 import { useAuth } from '../context/AuthContext';
 import { fetchAllPosts } from '../services/postsService';
 import { getUserImageSrc } from '../services/imageService';
@@ -18,13 +19,7 @@ import './FacebookLayout.css';
 const Home = () => {
     const { user, signOut, debugSession } = useAuth();
     
-    // Debug user data
-    useEffect(() => {
-        console.log('🔍 Home - User data:', user);
-        console.log('🔍 Home - User image:', user?.image, 'type:', typeof user?.image);
-        console.log('🔍 Home - User name:', user?.name);
-        console.log('🔍 Home - User keys:', user ? Object.keys(user) : 'No user');
-    }, [user]);
+    // Debug user data removed for production
     const navigate = useNavigate();
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -41,7 +36,66 @@ const Home = () => {
     const [selectedPost, setSelectedPost] = useState(null);
     const [unreadCounts, setUnreadCounts] = useState({});
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+    const [showCreatePostModal, setShowCreatePostModal] = useState(false);
     const postsPerPage = 15;
+
+    // Load posts function
+    const loadPosts = async () => {
+        if (!user?.id) {
+            console.log('No user ID, skipping posts load');
+            return;
+        }
+
+        setIsLoadingPosts(true);
+        try {
+            // Load posts từ REST API với phân trang
+            try {
+                const offset = (currentPage - 1) * postsPerPage;
+                const postsUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/posts?limit=${postsPerPage}&offset=${offset}&order=created_at.desc`;
+                const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+
+                const response = await fetch(postsUrl, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('📝 Posts loaded from API:', data);
+
+                if (currentPage === 1) {
+                    setPosts(data);
+                } else {
+                    setPosts(prevPosts => [...prevPosts, ...data]);
+                }
+
+                setHasMorePosts(data.length === postsPerPage);
+                setTotalPages(Math.ceil(data.length / postsPerPage));
+            } catch (apiError) {
+                console.error('API Error loading posts:', apiError);
+                // Fallback to service
+                const data = await fetchAllPosts();
+                console.log('📝 Posts loaded from service:', data);
+                
+                if (currentPage === 1) {
+                    setPosts(data);
+                } else {
+                    setPosts(prevPosts => [...prevPosts, ...data]);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading posts:', error);
+        } finally {
+            setIsLoadingPosts(false);
+        }
+    };
 
     // Load conversations cho right sidebar
     const loadConversations = async (showLoading = false) => {
@@ -78,7 +132,6 @@ const Home = () => {
             const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
             setTotalUnreadCount(total);
             
-            console.log('📊 Unread counts loaded:', counts, 'Total:', total);
         } catch (error) {
             console.error('Error loading unread counts:', error);
         }
@@ -239,8 +292,6 @@ const Home = () => {
                         let likesData = [];
                         if (likesResponse.ok) {
                             likesData = await likesResponse.json();
-                            console.log('🔍 Likes data loaded:', likesData.length, 'likes');
-                            console.log('🔍 Current user:', user?.id);
                         }
 
                         // Load comments count cho tất cả posts
@@ -268,8 +319,6 @@ const Home = () => {
                             
                             // Debug log cho từng post
                             if (post.id === postsData[0]?.id) { // Chỉ log post đầu tiên để tránh spam
-                                console.log('🔍 Post:', post.id, 'likes:', postLikes.length, 'isLiked:', isLiked);
-                                console.log('🔍 Post likes:', postLikes);
                             }
 
                             // Xử lý HTML tags trong body
@@ -413,7 +462,6 @@ const Home = () => {
     };
 
     const handleLike = async (postId) => {
-        console.log('🔍 handleLike called for post:', postId);
         if (liking) {
             console.log('🚫 Like blocked - already liking:', liking);
             return;
@@ -428,12 +476,6 @@ const Home = () => {
                     const isCurrentlyLiked = post.isLiked;
                     const newIsLiked = !isCurrentlyLiked;
                     const newLikesCount = isCurrentlyLiked ? post.likes_count - 1 : post.likes_count + 1;
-                    console.log('🔍 Optimistic update for postId', postId, ':', {
-                        wasLiked: isCurrentlyLiked,
-                        nowLiked: newIsLiked,
-                        oldCount: post.likes_count,
-                        newCount: newLikesCount
-                    });
                     return {
                         ...post,
                         isLiked: newIsLiked,
@@ -460,11 +502,9 @@ const Home = () => {
 
             if (checkResponse.ok) {
                 const existingLikes = await checkResponse.json();
-                console.log('🔍 Existing likes for postId', postId, ':', existingLikes);
 
                 if (existingLikes.length > 0) {
                     // Unlike - xóa like
-                    console.log('🔍 Unlike: Deleting like with id:', existingLikes[0].id);
                     const deleteUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes?id=eq.${existingLikes[0].id}`;
                     const deleteResponse = await fetch(deleteUrl, {
                         method: 'DELETE',
@@ -481,7 +521,6 @@ const Home = () => {
                     }
                 } else {
                     // Like - thêm like mới
-                    console.log('🔍 Like: Adding new like for postId', postId);
                     const addLikeUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes';
                     const addResponse = await fetch(addLikeUrl, {
                         method: 'POST',
@@ -525,8 +564,6 @@ const Home = () => {
 
 
     const handleShowComments = (postId) => {
-        console.log('🔍 handleShowComments - postId:', postId);
-        console.log('🔍 handleShowComments - posts array:', posts);
         
         const post = posts.find(p => p.id === postId);
         if (!post) {
@@ -534,7 +571,6 @@ const Home = () => {
             return;
         }
 
-        console.log('🔍 handleShowComments - found post:', post);
         setSelectedPost(post);
         setCommentModalOpen(true);
     };
@@ -585,16 +621,17 @@ const Home = () => {
                                 <input 
                                     type="text" 
                                     placeholder={`${user?.name || 'Bạn'} đang nghĩ gì?`}
-                                    onClick={() => navigate('/posts')}
+                                    onClick={() => setShowCreatePostModal(true)}
+                                    readOnly
                                 />
                             </div>
                         </div>
                         <div className="create-post-actions">
-                            <button className="action-btn photo-btn" onClick={() => navigate('/posts')}>
+                            <button className="action-btn photo-btn" onClick={() => setShowCreatePostModal(true)}>
                                 <span className="btn-icon">📷</span>
                                 <span className="btn-text">Ảnh/Video</span>
                             </button>
-                            <button className="action-btn feeling-btn" onClick={() => navigate('/posts')}>
+                            <button className="action-btn feeling-btn" onClick={() => setShowCreatePostModal(true)}>
                                 <span className="btn-icon">😊</span>
                                 <span className="btn-text">Cảm xúc</span>
                             </button>
@@ -670,7 +707,6 @@ const Home = () => {
                                         <button 
                                             className={`action-button like-btn ${post.isLiked ? 'liked' : ''}`}
                                             onClick={(e) => {
-                                                console.log('🔍 Like button clicked for post:', post.id, 'isLiked:', post.isLiked);
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 handleLike(post.id);
@@ -832,6 +868,19 @@ const Home = () => {
             )}
 
             {/* Comment Modal */}
+            <CreatePostModal
+                isOpen={showCreatePostModal}
+                onClose={() => setShowCreatePostModal(false)}
+                onPostCreated={() => {
+                    // Reload posts after creating new post
+                    setCurrentPage(1);
+                    setPosts([]);
+                    setHasMorePosts(true);
+                    // Trigger useEffect to reload posts
+                    window.location.reload();
+                }}
+            />
+
             {commentModalOpen && selectedPost && (
                 <CommentModal
                     isOpen={commentModalOpen}

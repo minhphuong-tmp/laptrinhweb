@@ -1,155 +1,217 @@
-import { supabase } from "../lib/supabase";
-import { getSupabaseFileUrl } from "./imageService";
+import { supabase } from '../lib/supabase';
 
-// Lấy bài viết của user với phân trang
-export const fetchPost = async (limit, userId) => {
+const API_URL = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1';
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+
+const headers = {
+    'apikey': API_KEY,
+    'Authorization': `Bearer ${API_KEY}`,
+    'Content-Type': 'application/json'
+};
+
+// Tạo bài viết mới
+export const createPost = async (postData) => {
     try {
-        if (userId) {
-            const { data, error } = await supabase
-                .from('posts')
-                .select(`
-                *,
-                user:users(id,name,image),
-                postLikes(*),
-                comments (count)
-                `)
-                .order('created_at', { ascending: false })
-                .eq('userId', userId)
-                .limit(limit);
+        const response = await fetch(`${API_URL}/posts`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(postData)
+        });
 
-            if (error) {
-                return { success: false, msg: 'Could not fetch the posts' };
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-            // Xử lý file URL cho mỗi post
-            const processedData = data.map(post => {
-                return {
-                    ...post,
-                    file: post.file ? getSupabaseFileUrl(post.file) : null
-                };
+        const data = await response.json();
+        console.log('✅ Post created successfully:', data);
+        return { success: true, data };
+    } catch (error) {
+        console.error('❌ Error creating post:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Upload ảnh lên Supabase Storage
+export const uploadImage = async (file, userId) => {
+    try {
+        // Tạo tên file unique trong folder postImages
+        const timestamp = Date.now();
+        const fileName = `postImages/${userId}/${timestamp}_${file.name}`;
+        
+        console.log('📤 Uploading image to postImages folder:', fileName);
+        
+        // Upload lên Supabase Storage sử dụng client
+        let { data, error } = await supabase.storage
+            .from('upload')
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
             });
 
-            return { success: true, data: processedData };
+        if (error) {
+            console.error('❌ Storage upload error:', error);
+            throw new Error(`Upload failed: ${error.message}`);
         }
-    } catch (error) {
-        return { success: false, msg: 'Could not fetchPost your post' };
-    }
-}
 
-// Lấy chi tiết bài viết với comments
+        console.log('✅ Image uploaded successfully:', data);
+        
+        // Lấy public URL
+        const { data: urlData } = supabase.storage
+            .from('upload')
+            .getPublicUrl(fileName);
+        
+        console.log('🔗 Public URL:', urlData.publicUrl);
+        return urlData.publicUrl;
+    } catch (error) {
+        console.error('❌ Error uploading image:', error);
+        throw error;
+    }
+};
+
+// Tạo bài viết với ảnh
+export const createPostWithImage = async (content, imageFile, userId) => {
+    try {
+        let imageUrl = null;
+        
+        // Upload ảnh nếu có
+        if (imageFile) {
+            try {
+                imageUrl = await uploadImage(imageFile, userId);
+                console.log('✅ Image uploaded successfully:', imageUrl);
+            } catch (uploadError) {
+                console.warn('⚠️ Image upload failed, creating post without image:', uploadError);
+                // Tiếp tục tạo bài viết không có ảnh
+            }
+        }
+        
+        // Tạo bài viết
+        const postData = {
+            content: content.trim(),
+            user_id: userId,
+            image: imageUrl, // Sử dụng cột 'image' thay vì 'image_url'
+            created_at: new Date().toISOString()
+        };
+        
+        return await createPost(postData);
+    } catch (error) {
+        console.error('❌ Error creating post with image:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Lấy chi tiết bài viết
 export const fetchPostDetails = async (postId) => {
     try {
-        console.log('🔍 Fetching post details for:', postId);
+        const response = await fetch(`${API_URL}/posts?id=eq.${postId}`, {
+            method: 'GET',
+            headers
+        });
 
-        const { data, error } = await supabase
-            .from('posts')
-            .select(`
-                *,
-                user:users(id,name,image),
-                postLikes(*),
-                comments(*, user:users(id,name,image))
-                `)
-            .eq('id', postId)
-            .order('created_at', { ascending: false, foreignTable: 'comments' })
-            .single();
-
-        console.log('📦 Raw post details:', data);
-        console.log('❌ Error:', error);
-
-        if (error) {
-            console.log('fetchPostsDetails error:', error);
-            return { success: false, msg: 'Could not fetch the posts details' };
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Xử lý file URL
-        const processedData = {
-            ...data,
-            file: data.file ? getSupabaseFileUrl(data.file) : null
+        const data = await response.json();
+        return { success: true, data: data[0] || null };
+    } catch (error) {
+        console.error('❌ Error fetching post details:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Tạo like cho bài viết
+export const createPostLike = async (postId, userId) => {
+    try {
+        const likeData = {
+            post_id: postId,
+            user_id: userId,
+            created_at: new Date().toISOString()
         };
 
-        console.log('✅ Processed post details:', processedData);
-        return { success: true, data: processedData };
-    } catch (error) {
-        console.log('fetchPostDetails error:', error);
-        return { success: false, msg: 'Could not fetchPost your post details' };
-    }
-}
+        const response = await fetch(`${API_URL}/postLikes`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(likeData)
+        });
 
-// Thêm like
-export const createPostLike = async (postLikes) => {
-    try {
-        const { data, error } = await supabase
-            .from('postLikes')
-            .insert(postLikes)
-            .select()
-            .single();
-
-        if (error) {
-            console.log('Post like error:', error);
-            return { success: false, msg: 'Could not fetch the posts like' };
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return { success: true, data: data };
-    } catch (error) {
-        console.log('fetchPost error:', error);
-        return { success: false, msg: 'Could not fetchPost your post like' };
-    }
-}
 
-// Bỏ like
+        const data = await response.json();
+        console.log('✅ Post like created successfully:', data);
+        return { success: true, data };
+    } catch (error) {
+        console.error('❌ Error creating post like:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Xóa like cho bài viết
 export const removePostLike = async (postId, userId) => {
     try {
-        const { error } = await supabase
-            .from('postLikes')
-            .delete()
-            .eq('postId', postId)
-            .eq('userId', userId);
+        const response = await fetch(`${API_URL}/postLikes?post_id=eq.${postId}&user_id=eq.${userId}`, {
+            method: 'DELETE',
+            headers
+        });
 
-        if (error) {
-            console.log('Post delete error:', error);
-            return { success: false, msg: 'Could not fetch the posts delete' };
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        console.log('✅ Post like removed successfully');
         return { success: true };
     } catch (error) {
-        console.log('fetchPost error:', error);
-        return { success: false, msg: 'Could not fetchPost your post delete' };
+        console.error('❌ Error removing post like:', error);
+        return { success: false, error: error.message };
     }
-}
+};
 
-// Thêm comment
-export const createComment = async (comment) => {
+// Tạo comment
+export const createComment = async (postId, userId, content) => {
     try {
-        const { data, error } = await supabase
-            .from('comments')
-            .insert(comment)
-            .select()
-            .single();
+        const commentData = {
+            post_id: postId,
+            user_id: userId,
+            content: content.trim(),
+            created_at: new Date().toISOString()
+        };
 
-        if (error) {
-            console.log('comments error:', error);
-            return { success: false, msg: 'Could not fetch the comments' };
+        const response = await fetch(`${API_URL}/comments`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(commentData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return { success: true, data: data };
+
+        const data = await response.json();
+        console.log('✅ Comment created successfully:', data);
+        return { success: true, data };
     } catch (error) {
-        console.log('comments error:', error);
-        return { success: false, msg: 'Could not comments' };
+        console.error('❌ Error creating comment:', error);
+        return { success: false, error: error.message };
     }
-}
+};
 
 // Xóa comment
 export const removeComment = async (commentId) => {
     try {
-        const { error } = await supabase
-            .from('comments')
-            .delete()
-            .eq('id', commentId);
+        const response = await fetch(`${API_URL}/comments?id=eq.${commentId}`, {
+            method: 'DELETE',
+            headers
+        });
 
-        if (error) {
-            console.log('Comment delete error:', error);
-            return { success: false, msg: 'Could not fetch the comments delete' };
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return { success: true, data: { commentId } };
+
+        console.log('✅ Comment removed successfully');
+        return { success: true };
     } catch (error) {
-        console.log('comment error:', error);
-        return { success: false, msg: 'Could not fetchPost your comment delete' };
+        console.error('❌ Error removing comment:', error);
+        return { success: false, error: error.message };
     }
-}
+};

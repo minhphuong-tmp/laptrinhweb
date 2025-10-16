@@ -1,3 +1,4 @@
+// Unread Messages Service - Debug logs removed
 const API_URL = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
 
@@ -27,10 +28,6 @@ export const getUnreadMessageCount = async (conversationId, userId) => {
         const memberData = await memberResponse.json();
         const lastReadAt = memberData[0]?.last_read_at;
         
-        console.log(`🔍 Conversation ${conversationId}:`, {
-            lastReadAt,
-            hasLastRead: !!lastReadAt
-        });
 
         // Nếu chưa có last_read_at, đếm tất cả tin nhắn
         let unreadCount = 0;
@@ -47,7 +44,6 @@ export const getUnreadMessageCount = async (conversationId, userId) => {
             if (messagesResponse.ok) {
                 const messagesData = await messagesResponse.json();
                 unreadCount = messagesData.length;
-                console.log(`📨 No last_read_at - Total messages: ${unreadCount}`);
             }
         } else {
             // Lấy tất cả tin nhắn và filter trong code (đơn giản hơn)
@@ -65,16 +61,13 @@ export const getUnreadMessageCount = async (conversationId, userId) => {
                 
                 // Debug: Log message timestamps
                 if (messagesData.length > 0) {
-                    console.log(`📅 Message timestamps for conversation ${conversationId}:`);
                     messagesData.forEach((msg, index) => {
                         const msgDate = new Date(msg.created_at);
                         const isAfterLastRead = msgDate > lastReadDate;
-                        console.log(`  Message ${index + 1}: ${msg.created_at} (${isAfterLastRead ? 'AFTER' : 'BEFORE'} last read)`);
                     });
                 }
                 
                 unreadCount = messagesData.filter(msg => new Date(msg.created_at) > lastReadDate).length;
-                console.log(`📨 With last_read_at - Total messages: ${messagesData.length}, Unread: ${unreadCount}, Last read: ${lastReadAt}`);
             } else {
                 console.error('Error fetching messages:', messagesResponse.status);
             }
@@ -114,10 +107,6 @@ export const getAllUnreadMessageCounts = async (userId) => {
                 const conversationId = conversation.conversation_id;
                 const lastReadAt = conversation.last_read_at;
 
-                console.log(`🔍 Processing conversation ${conversationId}:`, {
-                    lastReadAt,
-                    hasLastRead: !!lastReadAt
-                });
 
                 let unreadCount = 0;
                 if (!lastReadAt) {
@@ -133,7 +122,6 @@ export const getAllUnreadMessageCounts = async (userId) => {
                     if (messagesResponse.ok) {
                         const messagesData = await messagesResponse.json();
                         unreadCount = messagesData.length;
-                        console.log(`📨 No last_read_at - Total messages: ${unreadCount}`);
                     }
                 } else {
                     // Lấy tất cả tin nhắn và filter trong code (đơn giản hơn)
@@ -151,16 +139,13 @@ export const getAllUnreadMessageCounts = async (userId) => {
                         
                         // Debug: Log message timestamps
                         if (messagesData.length > 0) {
-                            console.log(`📅 Message timestamps for conversation ${conversationId}:`);
                             messagesData.forEach((msg, index) => {
                                 const msgDate = new Date(msg.created_at);
                                 const isAfterLastRead = msgDate > lastReadDate;
-                                console.log(`  Message ${index + 1}: ${msg.created_at} (${isAfterLastRead ? 'AFTER' : 'BEFORE'} last read)`);
                             });
                         }
                         
                         unreadCount = messagesData.filter(msg => new Date(msg.created_at) > lastReadDate).length;
-                        console.log(`📨 With last_read_at - Total messages: ${messagesData.length}, Unread: ${unreadCount}, Last read: ${lastReadAt}`);
                     } else {
                         console.error('Error fetching messages:', messagesResponse.status);
                     }
