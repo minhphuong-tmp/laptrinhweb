@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getConversations } from '../services/chatService';
 import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
+import GroupAvatar from './GroupAvatar';
 import './MessageDropdown.css';
 
 const MessageDropdown = ({ isOpen, onClose }) => {
@@ -123,13 +124,19 @@ const MessageDropdown = ({ isOpen, onClose }) => {
 
     const getConversationAvatar = (conversation) => {
         if (conversation.type === 'group') {
-            return null; // Sử dụng avatar mặc định cho nhóm
+            return <GroupAvatar members={conversation.conversation_members || []} size={40} />;
         } else {
             // Tìm avatar người khác trong cuộc trò chuyện
             const otherMember = conversation.conversation_members?.find(member => 
                 member.user_id !== user?.id
             );
-            return otherMember?.user?.image;
+            return (
+                <Avatar 
+                    src={otherMember?.user?.image || null}
+                    name={otherMember?.user?.name || 'User'}
+                    size={40}
+                />
+            );
         }
     };
 
@@ -167,11 +174,7 @@ const MessageDropdown = ({ isOpen, onClose }) => {
                                 onClick={() => handleConversationClick(conversation.id)}
                             >
                                 <div className="conversation-avatar">
-                                    <Avatar 
-                                        src={getConversationAvatar(conversation) || null}
-                                        name={getConversationName(conversation)}
-                                        size={40}
-                                    />
+                                    {getConversationAvatar(conversation)}
                                 </div>
                                 <div className="conversation-info">
                                     <div className="conversation-name">

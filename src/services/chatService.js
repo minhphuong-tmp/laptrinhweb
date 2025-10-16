@@ -350,7 +350,7 @@ export const markConversationAsRead = async (conversationId, userId) => {
 
 export const editMessage = async (messageId, content) => {
     try {
-        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncrdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
 
         const response = await fetch(`https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/messages?id=eq.${messageId}`, {
             method: 'PATCH',
@@ -382,7 +382,7 @@ export const editMessage = async (messageId, content) => {
 
 export const deleteMessage = async (messageId) => {
     try {
-        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncrdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
 
         const response = await fetch(`https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/messages?id=eq.${messageId}`, {
             method: 'DELETE',
@@ -407,7 +407,7 @@ export const deleteMessage = async (messageId) => {
 
 export const deleteConversation = async (conversationId, userId) => {
     try {
-        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncrdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
 
         // Kiểm tra xem user có phải admin của nhóm không
         const memberUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/conversation_members?conversation_id=eq.${conversationId}&user_id=eq.${userId}&select=is_admin,conversation:conversations(type)`;
@@ -492,7 +492,7 @@ export const deleteConversation = async (conversationId, userId) => {
 // ===== UTILITY FUNCTIONS =====
 export const createDirectConversation = async (userId1, userId2) => {
     try {
-        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncrdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
 
         // Kiểm tra xem đã có conversation giữa 2 user chưa
         const existingUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/conversations?type=eq.direct&select=id,conversation_members!inner(user_id)`;
@@ -585,7 +585,8 @@ export const createDirectConversation = async (userId1, userId2) => {
 
 export const createGroupConversation = async (name, createdBy, memberIds) => {
     try {
-        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncrdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+        console.log('🔍 createGroupConversation called with:', { name, createdBy, memberIds });
+        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
 
         // Tạo conversation
         const createResponse = await fetch('https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/conversations', {
@@ -603,8 +604,11 @@ export const createGroupConversation = async (name, createdBy, memberIds) => {
             })
         });
 
+        console.log('🔍 Create conversation response status:', createResponse.status);
+        
         if (!createResponse.ok) {
-            console.log('createGroupConversation error:', createResponse.status);
+            const errorText = await createResponse.text();
+            console.log('❌ createGroupConversation error:', createResponse.status, errorText);
             return { success: false, msg: 'Không thể tạo nhóm' };
         }
 

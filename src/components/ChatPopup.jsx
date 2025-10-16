@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
+import GroupAvatar from './GroupAvatar';
 import { useAuth } from '../context/AuthContext';
 import { getConversationById, getMessages, markConversationAsRead, sendMessage } from '../services/chatService';
 import './ChatPopup.css';
@@ -186,7 +187,7 @@ const ChatPopup = ({ conversationId, onClose }) => {
         if (!conversation) return <Avatar src={undefined} name="Chat" size={24} />;
 
         if (conversation.type === 'group') {
-            return <Avatar src={undefined} name="Group" size={24} />;
+            return <GroupAvatar members={conversation.conversation_members || []} size={24} />;
         }
 
         const otherMember = conversation.conversation_members?.find(

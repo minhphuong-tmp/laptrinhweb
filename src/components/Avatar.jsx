@@ -11,6 +11,7 @@ const Avatar = ({
     const [imageError, setImageError] = useState(false);
     const [imageUrl, setImageUrl] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [defaultImageError, setDefaultImageError] = useState(false);
 
     const getInitials = (name) => {
         if (!name) return 'U';
@@ -126,13 +127,31 @@ const Avatar = ({
         );
     }
 
-    // Fallback: Hiển thị placeholder với chữ cái đầu (chỉ khi không có ảnh)
+    // Fallback: Hiển thị ảnh avatar mặc định hoặc chữ cái đầu
+    if (defaultImageError) {
+        return (
+            <div
+                className={className}
+                style={avatarStyle}
+            >
+                {getInitials(name)}
+            </div>
+        );
+    }
+
     return (
         <div
             className={className}
             style={avatarStyle}
         >
-            {getInitials(name)}
+            <img
+                src="/images/defaultUser.png"
+                alt="Default Avatar"
+                style={imageStyle}
+                onError={() => {
+                    setDefaultImageError(true);
+                }}
+            />
         </div>
     );
 };

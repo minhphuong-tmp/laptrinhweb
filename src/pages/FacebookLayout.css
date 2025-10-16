@@ -35,11 +35,43 @@
     padding: 20px;
 }
 
-.right-sidebar h3 {
-    margin: 0 0 16px 0;
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sidebar-header h3 {
+    margin: 0;
     font-size: 18px;
     font-weight: 600;
     color: #1c1e21;
+}
+
+.create-group-btn {
+    background: #1877f2;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.create-group-btn:hover {
+    background: #166fe5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.create-group-icon {
+    font-size: 16px;
+    color: white;
 }
 
 .conversations-list {

@@ -1,10 +1,15 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { getUserImageSrc } from '../services/imageService';
 import './Sidebar.css';
 
 const Sidebar = () => {
-    const { user } = useAuth();
+    const { user, signOut } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
+    const [userImageUrl, setUserImageUrl] = useState(null);
+    const [imageLoading, setImageLoading] = useState(false);
 
     const menuItems = [
         { path: '/', icon: '🏠', label: 'Trang chủ', active: location.pathname === '/' },
@@ -12,6 +17,28 @@ const Sidebar = () => {
         { path: '/todo', icon: '📋', label: 'Ghi chú', active: location.pathname === '/todo' },
         { path: '/stats', icon: '📊', label: 'Thống kê', active: location.pathname === '/stats' },
     ];
+
+    // Load user image
+    useEffect(() => {
+        const loadUserImage = async () => {
+            if (user?.image) {
+                setImageLoading(true);
+                try {
+                    const imageUrl = await getUserImageSrc(user.image, user.name, 40);
+                    setUserImageUrl(imageUrl);
+                } catch (error) {
+                    console.error('Error loading user image:', error);
+                    setUserImageUrl(null);
+                } finally {
+                    setImageLoading(false);
+                }
+            } else {
+                setUserImageUrl(null);
+            }
+        };
+
+        loadUserImage();
+    }, [user?.image, user?.name]);
 
     return (
         <div className="sidebar">
@@ -35,8 +62,12 @@ const Sidebar = () => {
             <div className="sidebar-footer">
                 <div className="user-info">
                     <div className="user-avatar">
-                        {user?.image ? (
-                            <img src={user.image} alt={user.name} />
+                        {imageLoading ? (
+                            <div className="avatar-loading">
+                                <div className="loading-spinner"></div>
+                            </div>
+                        ) : userImageUrl ? (
+                            <img src={userImageUrl} alt={user?.name || 'User'} />
                         ) : (
                             <div className="avatar-placeholder">
                                 {user?.name?.charAt(0) || '👤'}
@@ -48,6 +79,17 @@ const Sidebar = () => {
                         <div className="user-status">Đang hoạt động</div>
                     </div>
                 </div>
+                
+                <button 
+                    className="logout-btn"
+                    onClick={async () => {
+                        await signOut();
+                        navigate('/login');
+                    }}
+                >
+                    <span className="logout-icon">🚪</span>
+                    <span className="logout-text">Đăng xuất</span>
+                </button>
             </div>
         </div>
     );

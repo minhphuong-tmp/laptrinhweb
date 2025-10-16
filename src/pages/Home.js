@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
+import GroupAvatar from '../components/GroupAvatar';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import ChatPopup from '../components/ChatPopup';
@@ -15,6 +16,14 @@ import './FacebookLayout.css';
 
 const Home = () => {
     const { user, signOut, debugSession } = useAuth();
+    
+    // Debug user data
+    useEffect(() => {
+        console.log('🔍 Home - User data:', user);
+        console.log('🔍 Home - User image:', user?.image, 'type:', typeof user?.image);
+        console.log('🔍 Home - User name:', user?.name);
+        console.log('🔍 Home - User keys:', user ? Object.keys(user) : 'No user');
+    }, [user]);
     const navigate = useNavigate();
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -83,7 +92,7 @@ const Home = () => {
 
     const getConversationAvatar = (conversation) => {
         if (conversation.type === 'group') {
-            return <Avatar src={undefined} name="Group" size={32} />;
+            return <GroupAvatar members={conversation.conversation_members || []} size={32} />;
         }
 
         const otherMember = conversation.conversation_members?.find(
@@ -663,7 +672,16 @@ const Home = () => {
             {/* Right Sidebar - Conversations */}
             <div className="right-sidebar">
                 <div className="right-sidebar-content">
-                    <h3>Cuộc trò chuyện</h3>
+                    <div className="sidebar-header">
+                        <h3>Cuộc trò chuyện</h3>
+                        <button 
+                            className="create-group-btn"
+                            onClick={() => navigate('/new-chat')}
+                            title="Tạo nhóm mới"
+                        >
+                            <span className="create-group-icon">👥</span>
+                        </button>
+                    </div>
                     <div className="conversations-list">
                         {conversationsLoading ? (
                             <div className="loading-conversations">
@@ -692,10 +710,6 @@ const Home = () => {
                                         </div>
                                         <div className="conversation-preview">
                                             {(() => {
-                                                console.log('🔍 Conversation data:', conversation);
-                                                console.log('🔍 Last message:', conversation.last_message);
-                                                console.log('🔍 Messages array:', conversation.messages);
-                                                
                                                 if (conversation.last_message) {
                                                     return (
                                                         <>
@@ -709,7 +723,6 @@ const Home = () => {
                                                     );
                                                 } else if (conversation.messages && conversation.messages.length > 0) {
                                                     const lastMsg = conversation.messages[conversation.messages.length - 1];
-                                                    console.log('🔍 Using last message from messages array:', lastMsg);
                                                     return (
                                                         <>
                                                             <span className="conversation-sender">

@@ -160,12 +160,30 @@
 
 .post-image {
     width: 100% !important;
-    max-width: 614px !important;
-    height: auto !important;
-    margin: 20px auto !important;
-    object-fit: contain !important;
-    border-radius: var(--radius-sm);
+    max-width: 100% !important;
+    margin: 20px 0 !important;
+    border-radius: 12px;
     margin-top: var(--spacing-sm);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.post-image img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 800px !important;
+    min-height: 400px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 12px;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.post-image img:hover {
+    transform: scale(1.02);
 }
 
 .post-actions {

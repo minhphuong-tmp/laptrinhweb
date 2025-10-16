@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
 
 const useRealtimeComments = (postId, currentUser, initialComments = []) => {
     const [comments, setComments] = useState(initialComments);
@@ -29,7 +30,6 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
 
                 if (commentsResponse.ok) {
                     const commentsData = await commentsResponse.json();
-                    console.log('🔍 Loaded comments from Supabase:', commentsData);
                     
                     // Load users
                     const usersUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/users';
@@ -45,7 +45,6 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
                     let usersData = [];
                     if (usersResponse.ok) {
                         usersData = await usersResponse.json();
-                        console.log('🔍 Loaded users from Supabase:', usersData);
                     }
 
                     // Format comments with user info
@@ -64,7 +63,6 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
                         };
                     });
 
-                    console.log('🔍 Formatted comments:', formattedComments);
                     
                     // If no comments, add a test comment for demo
                     if (formattedComments.length === 0) {
@@ -80,7 +78,6 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
                             likes: 0,
                             replies: []
                         };
-                        console.log('🔍 Adding test comment:', testComment);
                         setComments([testComment]);
                     } else {
                         setComments(formattedComments);
@@ -158,6 +155,9 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
                 };
 
                 setComments(prev => [...prev, newComment]);
+
+                // Tạo thông báo comment (cần lấy post owner)
+
                 return newComment;
             } else {
                 const errorText = await response.text();

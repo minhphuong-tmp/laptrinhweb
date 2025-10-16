@@ -109,10 +109,18 @@
 
 .post-media {
     width: 100% !important;
-    border-radius: 8px;
+    border-radius: 12px;
     max-height: 800px !important;
-    object-fit: contain !important;
+    min-height: 400px !important;
+    object-fit: cover !important;
+    object-position: center !important;
     background-color: #f8f9fa;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.post-media:hover {
+    transform: scale(1.02);
 }
 
 .post-video {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
+import GroupAvatar from '../components/GroupAvatar';
 import { useAuth } from '../context/AuthContext';
 import { getConversationById, getMessages, markConversationAsRead, sendMessage } from '../services/chatService';
 import './Chat.css';
@@ -130,7 +131,7 @@ const Chat = () => {
         if (!conversation) return <Avatar src={undefined} name="Chat" size={40} />;
 
         if (conversation.type === 'group') {
-            return <Avatar src={undefined} name="Group" size={40} />;
+            return <GroupAvatar members={conversation.conversation_members || []} size={40} />;
         }
 
         const otherMember = conversation.conversation_members?.find(

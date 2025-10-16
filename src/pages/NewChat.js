@@ -67,11 +67,17 @@ const NewChat = () => {
             let result;
 
             if (isGroup) {
+                console.log('🔍 Creating group with:', {
+                    name: groupName.trim(),
+                    createdBy: user.id,
+                    memberIds: selectedUsers
+                });
                 result = await createGroupConversation(
                     groupName.trim(),
                     user.id,
                     selectedUsers
                 );
+                console.log('🔍 Group creation result:', result);
             } else {
                 result = await createDirectConversation(user.id, selectedUsers[0]);
             }
@@ -79,11 +85,12 @@ const NewChat = () => {
             if (result.success) {
                 navigate(`/chat/${result.data.id}`);
             } else {
-                alert(result.msg);
+                console.error('❌ Creation failed:', result.msg);
+                alert(result.msg || 'Không thể tạo cuộc trò chuyện');
             }
         } catch (error) {
-            console.error('Error creating chat:', error);
-            alert('Không thể tạo cuộc trò chuyện');
+            console.error('❌ Error creating chat:', error);
+            alert('Không thể tạo cuộc trò chuyện: ' + error.message);
         } finally {
             setCreating(false);
         }

@@ -1,17 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getUnreadNotificationCount } from '../services/notificationService';
 import Avatar from './Avatar';
 import NotificationDropdown from './NotificationDropdown';
 import MessageDropdown from './MessageDropdown';
 import './TopBar.css';
 
 const TopBar = () => {
-    const { user, signOut } = useAuth();
+    const { user, signOut, userData } = useAuth();
     const navigate = useNavigate();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showMessages, setShowMessages] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Load unread notification count
+    useEffect(() => {
+        const loadUnreadCount = async () => {
+            if (user?.id) {
+                try {
+                    const count = await getUnreadNotificationCount(user.id);
+                    setUnreadCount(count);
+                } catch (error) {
+                    console.error('Error loading unread count:', error);
+                }
+            }
+        };
+
+        loadUnreadCount();
+    }, [user]);
 
     const handleSignOut = async () => {
         if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
@@ -46,15 +64,24 @@ const TopBar = () => {
                     {/* Notifications */}
                     <div className="notification-container">
                         <button 
-                            className="topbar-btn notification-btn"
+                            className="topbar-btn"
                             onClick={() => setShowNotifications(!showNotifications)}
                         >
-                            <span className="btn-icon">🔔</span>
-                            <span className="notification-badge">3</span>
+                            🔔
+                            {unreadCount > 0 && (
+                                <span className="notification-badge">{unreadCount}</span>
+                            )}
                         </button>
+                        
                         <NotificationDropdown 
                             isOpen={showNotifications}
                             onClose={() => setShowNotifications(false)}
+                            onNotificationRead={() => {
+                                // Reload unread count when notification is read
+                                if (user?.id) {
+                                    getUnreadNotificationCount(user.id).then(setUnreadCount);
+                                }
+                            }}
                         />
                     </div>
 

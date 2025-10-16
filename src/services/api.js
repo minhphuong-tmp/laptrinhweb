@@ -136,6 +136,17 @@ export const postsApi = {
     // Like/Unlike post
     toggleLike: async (postId, userId) => {
         try {
+            // Lấy thông tin post để biết ai là chủ bài viết
+            const { data: post } = await supabase
+                .from('posts')
+                .select('user_id')
+                .eq('id', postId)
+                .single();
+
+            if (!post) {
+                throw new Error('Bài viết không tồn tại');
+            }
+
             const { data: existingLike } = await supabase
                 .from('post_likes')
                 .select('id')
@@ -152,6 +163,8 @@ export const postsApi = {
                     .eq('user_id', userId);
 
                 if (error) throw error;
+
+
                 return createApiResponse(true, { action: 'unliked' });
             } else {
                 // Like
@@ -160,6 +173,8 @@ export const postsApi = {
                     .insert({ post_id: postId, user_id: userId });
 
                 if (error) throw error;
+
+
                 return createApiResponse(true, { action: 'liked' });
             }
         } catch (error) {

@@ -33,41 +33,31 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        // Kiểm tra session khi component mount
+        // Kiểm tra session từ localStorage
         const checkSession = async () => {
             try {
                 setLoading(true);
-                // Kiểm tra session từ localStorage thay vì Supabase client
                 const storedToken = localStorage.getItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
 
                 if (storedToken) {
                     try {
                         const authData = JSON.parse(storedToken);
                         if (authData?.user && authData?.access_token) {
-                            const session = { user: authData.user };
-
-                            // Tạo user object cơ bản từ session trước
-                            const basicUser = createBasicUserFromSession(session.user);
-
-                            // Set user ngay lập tức để tránh loading
+                            const basicUser = createBasicUserFromSession(authData.user);
                             setUser(basicUser);
-                            setLoading(false);
-
-
-                            // Sau đó thử lấy thông tin chi tiết từ database (async, không block)
+                            
+                            // Load full user data from database
                             try {
-                                console.log('🔄 Loading detailed user data for:', session.user.id);
-                                const userRes = await getUserData(session.user.id);
-                                if (userRes.success) {
-                                    console.log('✅ Detailed user data loaded:', userRes.data);
-                                    setUser(userRes.data);
+                                const userDataResult = await getUserData(authData.user.id);
+                                if (userDataResult.success && userDataResult.data) {
+                                    console.log('🔍 Loaded user data from database:', userDataResult.data);
+                                    setUser(userDataResult.data);
                                 } else {
-                                    console.log('⚠️ Failed to get user data, using basic user:', userRes.msg);
-                                    // Fallback: giữ nguyên basicUser đã set
+                                    console.log('⚠️ Failed to load user data from database, keeping basic user');
                                 }
-                            } catch (error) {
-                                console.error('❌ Error loading user data:', error);
-                                // Fallback: giữ nguyên basicUser đã set
+                            } catch (dbError) {
+                                console.error('Error loading user data from database:', dbError);
+                                // Keep basic user if database fails
                             }
                         } else {
                             setUser(null);
@@ -80,6 +70,7 @@ export const AuthProvider = ({ children }) => {
                     setUser(null);
                 }
             } catch (error) {
+                console.error('Error in checkSession:', error);
                 setUser(null);
             } finally {
                 setLoading(false);
@@ -87,14 +78,7 @@ export const AuthProvider = ({ children }) => {
         };
 
         checkSession();
-
-        // Không cần onAuthStateChange với REST API approach
-
-        return () => {
-            // Không cần unsubscribe với REST API approach
-            console.log('REST API cleanup - no subscription to unsubscribe');
-        };
-    }, []); // Chỉ chạy một lần khi mount
+    }, []);
 
     const setAuth = (authUser) => {
         setUser(authUser);
@@ -114,12 +98,15 @@ export const AuthProvider = ({ children }) => {
                 method: 'POST',
                 headers: {
                     'apikey': apiKey,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     email: email.trim(),
                     password: password.trim()
-                })
+                }),
+                mode: 'cors',
+                credentials: 'omit'
             });
 
             if (!signInResponse.ok) {
@@ -134,41 +121,23 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('sb-oqtlakdvlmkaalymgrwd-auth-token', JSON.stringify(authData));
 
             if (authData?.user) {
-                // Lấy thông tin user từ database
-                try {
-                    const userRes = await getUserData(authData.user.id);
-                    if (userRes.success) {
-                        console.log('User data loaded successfully:', userRes.data);
-                        setUser(userRes.data);
-                    } else {
-                        console.log('Failed to get user data, using session user:', userRes.msg);
-                        // Fallback: sử dụng session.user với thông tin cơ bản
-                        setUser({
-                            id: authData.user.id,
-                            email: authData.user.email,
-                            name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
-                            image: authData.user.user_metadata?.avatar_url || null,
-                            created_at: authData.user.created_at,
-                            updated_at: authData.user.updated_at
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error getting user data:', error);
-                    // Fallback: sử dụng session.user
-                    setUser({
-                        id: authData.user.id,
-                        email: authData.user.email,
-                        name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
-                        image: authData.user.user_metadata?.avatar_url || null,
-                        created_at: authData.user.created_at,
-                        updated_at: authData.user.updated_at
-                    });
-                }
+                // Sử dụng user từ session đơn giản
+                const basicUser = {
+                    id: authData.user.id,
+                    email: authData.user.email,
+                    name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
+                    image: authData.user.user_metadata?.avatar_url || null,
+                    created_at: authData.user.created_at,
+                    updated_at: authData.user.updated_at
+                };
+                setUser(basicUser);
+                setLoading(false);
             }
 
             return { success: true, data: authData };
         } catch (err) {
             console.error('Supabase signIn error:', err);
+            setLoading(false);
             return { success: false, error: err };
         }
     };
@@ -221,57 +190,21 @@ export const AuthProvider = ({ children }) => {
 
     const signOut = async () => {
         try {
-            console.log('🚪 Starting to clear session...');
+            console.log('🚪 Starting sign out...');
 
-            console.log('✅ Using REST API approach - no server-side signOut needed');
+            // Clear localStorage
+            localStorage.removeItem('sb-oqtlakdvlmkaalymgrwd-auth-token');
 
-            // Clear all localStorage items related to Supabase
-            Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('sb-') || key.includes('supabase')) {
-                    localStorage.removeItem(key);
-                    console.log('🗑️ Removed from localStorage:', key);
-                }
-            });
-
-            // Clear session storage
-            Object.keys(sessionStorage).forEach(key => {
-                if (key.startsWith('sb-') || key.includes('supabase')) {
-                    sessionStorage.removeItem(key);
-                    console.log('🗑️ Removed from sessionStorage:', key);
-                }
-            });
-
-            // Reset state immediately
+            // Reset state
             setUser(null);
             setLoading(false);
 
-            console.log('✅ Session cleared completely, user should be null now');
-
+            console.log('✅ Sign out successful');
             return { success: true };
         } catch (error) {
-            console.log('❌ SignOut error:', error);
-
-            // Fallback: Clear local data anyway
-            console.log('🔄 Fallback: Clearing local data...');
-
-            Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('sb-') || key.includes('supabase')) {
-                    localStorage.removeItem(key);
-                    console.log('🗑️ Fallback removed from localStorage:', key);
-                }
-            });
-
-            Object.keys(sessionStorage).forEach(key => {
-                if (key.startsWith('sb-') || key.includes('supabase')) {
-                    sessionStorage.removeItem(key);
-                    console.log('🗑️ Fallback removed from sessionStorage:', key);
-                }
-            });
-
+            console.error('❌ SignOut catch error:', error);
             setUser(null);
             setLoading(false);
-
-            console.log('✅ Fallback: Session cleared locally');
             return { success: true };
         }
     };

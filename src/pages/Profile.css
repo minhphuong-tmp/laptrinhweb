@@ -522,23 +522,33 @@
 
 .post-image {
     width: 100% !important;
-    max-width: 614px !important;
-    height: auto !important;
-    margin: 20px auto !important;
-    border-radius: 0;
+    max-width: 100% !important;
+    margin: 20px 0 !important;
+    border-radius: 12px;
     background-color: transparent;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .post-image img {
     width: 100% !important;
     height: auto !important;
-    object-fit: contain !important;
-    border-radius: 0;
+    max-height: 800px !important;
+    min-height: 400px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 12px;
     background-color: #f8f9fa;
     display: block;
     margin: 0;
     padding: 0;
+    transition: transform 0.3s ease;
+}
+
+.post-image img:hover {
+    transform: scale(1.02);
 }
 
 .post-actions {

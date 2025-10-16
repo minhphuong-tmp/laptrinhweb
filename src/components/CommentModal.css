@@ -139,11 +139,18 @@ body.modal-open {
     max-width: 100%;
     width: 100%;
     height: auto;
-    max-height: 400px;
-    border-radius: 8px;
+    max-height: 600px;
+    min-height: 350px;
+    border-radius: 12px;
     object-fit: cover;
+    object-position: center;
     display: block;
     background: #f0f0f0;
+    transition: transform 0.3s ease;
+}
+
+.post-image:hover {
+    transform: scale(1.02);
 }
 
 .post-video {

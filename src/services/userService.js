@@ -33,7 +33,19 @@ export const getUserData = async (userId) => {
 
         if (!usersResponse.ok) {
             console.error('❌ Failed to get user data:', usersResponse.status);
-            return { success: false, msg: `HTTP error! status: ${usersResponse.status}` };
+            // Fallback: trả về user data cơ bản
+            return { 
+                success: true, 
+                data: {
+                    id: userId,
+                    name: 'User',
+                    email: '',
+                    image: null,
+                    bio: null,
+                    address: null,
+                    phoneNumber: null
+                }
+            };
         }
 
         const usersData = await usersResponse.json();
