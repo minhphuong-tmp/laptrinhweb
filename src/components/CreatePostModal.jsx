@@ -13,6 +13,86 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
     const [userImageUrl, setUserImageUrl] = useState(null);
     const [avatarLoading, setAvatarLoading] = useState(true);
 
+    // Toast notification functions
+    const showSuccessToast = (message) => {
+        const toast = document.createElement('div');
+        toast.className = 'toast-success';
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        // Add animation keyframes
+        if (!document.querySelector('#toast-styles')) {
+            const style = document.createElement('style');
+            style.id = 'toast-styles';
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    };
+
+    const showErrorToast = (message) => {
+        const toast = document.createElement('div');
+        toast.className = 'toast-error';
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f44336;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 4000);
+    };
+
     // Load user avatar
     useEffect(() => {
         if (!isOpen || !user) {
@@ -64,22 +144,20 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
         if (!content.trim()) return;
         
         if (!user?.id) {
-            alert('Vui lòng đăng nhập để tạo bài viết!');
+            showErrorToast('❌ Vui lòng đăng nhập để tạo bài viết!');
             return;
         }
 
         setLoading(true);
         try {
-            console.log('Creating post:', { content, image, userId: user?.id });
             
             // Tạo bài viết với API thật
             const result = await createPostWithImage(content, image, user?.id);
             
             if (result.success) {
-                console.log('✅ Post created successfully:', result.data);
                 
                 // Hiển thị thông báo thành công
-                alert('Đăng bài viết thành công!');
+                showSuccessToast('🎉 Đăng bài viết thành công!');
                 
                 // Reset form
                 setContent('');
@@ -92,12 +170,10 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
                     onPostCreated();
                 }
             } else {
-                console.error('❌ Failed to create post:', result.error);
-                alert('Có lỗi xảy ra khi tạo bài viết. Vui lòng thử lại!');
+                showErrorToast('❌ Có lỗi xảy ra khi tạo bài viết. Vui lòng thử lại!');
             }
         } catch (error) {
-            console.error('Error creating post:', error);
-            alert('Có lỗi xảy ra khi tạo bài viết. Vui lòng thử lại!');
+            showErrorToast('❌ Có lỗi xảy ra khi tạo bài viết. Vui lòng thử lại!');
         } finally {
             setLoading(false);
         }

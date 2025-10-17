@@ -19,12 +19,23 @@ export const createPost = async (postData) => {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('❌ Post creation failed:', response.status, errorText);
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
 
-        const data = await response.json();
-        console.log('✅ Post created successfully:', data);
-        return { success: true, data };
+        // Kiểm tra xem response có content không
+        const responseText = await response.text();
+        if (!responseText) {
+            return { success: true, data: null };
+        }
+
+        try {
+            const data = JSON.parse(responseText);
+            return { success: true, data };
+        } catch (parseError) {
+            return { success: true, data: responseText };
+        }
     } catch (error) {
         console.error('❌ Error creating post:', error);
         return { success: false, error: error.message };
@@ -53,14 +64,12 @@ export const uploadImage = async (file, userId) => {
             throw new Error(`Upload failed: ${error.message}`);
         }
 
-        console.log('✅ Image uploaded successfully:', data);
         
         // Lấy public URL
         const { data: urlData } = supabase.storage
             .from('upload')
             .getPublicUrl(fileName);
         
-        console.log('🔗 Public URL:', urlData.publicUrl);
         return urlData.publicUrl;
     } catch (error) {
         console.error('❌ Error uploading image:', error);
@@ -77,7 +86,6 @@ export const createPostWithImage = async (content, imageFile, userId) => {
         if (imageFile) {
             try {
                 imageUrl = await uploadImage(imageFile, userId);
-                console.log('✅ Image uploaded successfully:', imageUrl);
             } catch (uploadError) {
                 console.warn('⚠️ Image upload failed, creating post without image:', uploadError);
                 // Tiếp tục tạo bài viết không có ảnh
@@ -86,11 +94,15 @@ export const createPostWithImage = async (content, imageFile, userId) => {
         
         // Tạo bài viết
         const postData = {
-            content: content.trim(),
-            user_id: userId,
-            image: imageUrl, // Sử dụng cột 'image' thay vì 'image_url'
+            body: content.trim(), // Sử dụng cột 'body'
+            userId: userId,       // Sử dụng cột 'userId'
             created_at: new Date().toISOString()
         };
+        
+        // Thêm file nếu có
+        if (imageUrl) {
+            postData.file = imageUrl; // Sử dụng cột 'file'
+        }
         
         return await createPost(postData);
     } catch (error) {
