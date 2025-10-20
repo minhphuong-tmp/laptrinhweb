@@ -145,7 +145,7 @@ const Documents = () => {
 
     if (loading) {
         return (
-            <div className="documents-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải tài liệu...</p>
@@ -155,24 +155,9 @@ const Documents = () => {
     }
 
     return (
-        <div className="documents-page">
-            <div className="documents-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>📚 Thư viện tài liệu CLB</h1>
-                </div>
-                <button 
-                    className="upload-btn"
-                    onClick={() => setShowAddModal(true)}
-                >
-                    📤 Tải lên tài liệu
-                </button>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Quản lý tài liệu CLB</h1>
             </div>
 
             <div className="documents-filters">

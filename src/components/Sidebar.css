@@ -13,17 +13,6 @@
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.sidebar-header {
-    padding: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-header h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
-}
 
 .sidebar-nav {
     flex: 1;
@@ -32,13 +21,22 @@
 
 /* CLB Tin học KMA Section */
 .clb-section {
-    margin-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 20px;
+    flex: 1;
+    padding: 20px 0;
 }
 
 .clb-header {
     padding: 0 20px 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.clb-logo {
+    width: 35px;
+    height: 35px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .clb-header h3 {

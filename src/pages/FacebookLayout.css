@@ -3,18 +3,21 @@
     display: flex;
     min-height: 100vh;
     background: #f0f2f5;
+    scrollbar-gutter: stable both-edges;
 }
 
-.main-content {
+.facebook-layout .main-content {
     flex: 1;
     margin-left: 280px;
     margin-top: 60px;
     padding: 20px;
     background: #f0f2f5;
+    padding-left: 700px;
 }
 
 .content-wrapper {
-    max-width: 680px;
+    width: 680px;
+    max-width: 100%;
     margin: 0 auto;
 }
 

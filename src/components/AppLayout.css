@@ -1,0 +1,79 @@
+/* AppLayout CSS - Tương tự FacebookLayout.css nhưng cho tất cả các trang */
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f0f2f5;
+}
+
+.main-content {
+    flex: 1 1;
+    display: flex;
+    flex-direction: column;
+    margin-left: 280px !important; /* Width of sidebar */
+    margin-right: 300px !important; /* Width of right sidebar */
+    min-width: 0; /* Prevent overflow */
+    margin-top: 30px;
+}
+
+/* Center inner content across all functional pages */
+/* Revert to margin auto centering via inner wrappers instead of flex center */
+
+.content-area {
+    flex: 1;
+    padding: 15px 30px 15px 15px; /* top right bottom left - add right padding to push content left */
+    background-color:white;
+    min-height: calc(100vh - 60px); /* Subtract TopBar height */
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 60px);
+    display: flex;
+    justify-content: center; /* center post/feed area */
+}
+
+/* Center common inner containers across pages */
+/* (reverted) Do not force-center inner containers here; use each page's wrapper */
+
+/* Fallback: if pages render a direct child container under main-content */
+/* (reverted) No generic center fallback at layout level */
+
+/* Right Sidebar */
+.right-sidebar {
+    position: fixed;
+    right: 0;
+    top: 60px;
+    width: 300px;
+    height: calc(100vh - 60px);
+    background: white;
+    border-left: 1px solid #e4e6ea;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+    .main-content {
+        margin-right: 0;
+    }
+    
+    .right-sidebar {
+        display: none;
+    }
+}
+
+@media (max-width: 1024px) {
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .content-area {
+        padding: 10px 16px 10px 10px; /* reduce right padding on smaller screens */
+    }
+}
+
+@media (max-width: 768px) {
+    .content-area {
+        padding: 8px 12px 8px 8px;
+    }
+}

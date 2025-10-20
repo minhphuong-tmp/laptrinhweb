@@ -272,7 +272,7 @@
     border-top: 1px solid var(--gray-200);
 }
 
-.post-item {
+.profile-container .post-item {
     padding: 16px;
     border-bottom: 1px solid var(--gray-200);
 }
@@ -461,21 +461,13 @@
     }
 }
 
-/* Post Cards Styles */
-.post-card {
-    background: white;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
-    padding: var(--spacing-md);
+/* Post Cards Styles - moved to FacebookLayout.css to avoid conflicts */
+
+.profile-container .post-header {
     margin-bottom: var(--spacing-md);
 }
 
-.post-header {
-    margin-bottom: var(--spacing-md);
-}
-
-.post-author {
+.profile-container .post-author {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
@@ -492,16 +484,16 @@
     margin: 0 0 4px 0;
 }
 
-.post-time {
+.profile-container .post-time {
     color: var(--text-light);
     font-size: 14px;
 }
 
-.post-content {
+.profile-container .post-content {
     margin-bottom: var(--spacing-md);
 }
 
-.post-title {
+.profile-container .post-title {
     color: var(--text-dark);
     font-size: 18px;
     font-weight: var(--font-semiBold);
@@ -509,18 +501,18 @@
     line-height: 1.4;
 }
 
-.post-text {
+.profile-container .post-text {
     color: var(--text-color);
     font-size: 16px;
     line-height: 1.6;
     margin: 0 0 var(--spacing-md) 0;
 }
 
-.post-image {
+.profile-container .post-image {
     margin-top: var(--spacing-md);
 }
 
-.post-image {
+.profile-container .post-image {
     width: 100% !important;
     max-width: 100% !important;
     margin: 20px 0 !important;
@@ -532,7 +524,7 @@
     align-items: center;
 }
 
-.post-image img {
+.profile-container .post-image img {
     width: 100% !important;
     height: auto !important;
     max-height: 800px !important;
@@ -547,11 +539,11 @@
     transition: transform 0.3s ease;
 }
 
-.post-image img:hover {
+.profile-container .post-image img:hover {
     transform: scale(1.02);
 }
 
-.post-actions {
+.profile-container .post-actions {
     display: flex;
     gap: var(--spacing-sm);
     padding-top: var(--spacing-sm);

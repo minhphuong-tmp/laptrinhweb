@@ -2,6 +2,8 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import './App.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
+import AppLayout from './components/AppLayout';
+import RightSidebar from './components/RightSidebar';
 import Loading from './components/Loading';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Chat from './pages/Chat';
@@ -61,6 +63,7 @@ function App() {
                             <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
                             <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                         </Routes>
+                        <RightSidebar />
                     </div>
                 </Router>
             </AuthProvider>
@@ -68,8 +71,12 @@ function App() {
     );
 }
 
-function ProtectedRoute({ children }) {
-    const { user, loading } = useAuth();
+interface ProtectedRouteProps {
+    children: React.ReactNode;
+}
+
+function ProtectedRoute({ children }: ProtectedRouteProps) {
+    const { user, loading } = useAuth() as { user: any; loading: boolean };
 
     if (loading) {
         console.log('Still loading...');
@@ -84,9 +91,16 @@ function ProtectedRoute({ children }) {
         return <Navigate to="/login" replace />;
     }
 
-    // Các trang không cần Header (đã có Sidebar và TopBar)
-    const pagesWithoutHeader = ['/', '/home', '/posts', '/todo', '/stats', '/profile', '/chat', '/members', '/activities', '/documents', '/statistics', '/announcements', '/calendar', '/leaderboard', '/meeting-notes', '/finance', '/support'];
+    // Các trang sử dụng AppLayout (có sidebar trái, phải và header)
+    const pagesWithAppLayout = ['/members', '/activities', '/documents', '/statistics', '/announcements', '/calendar', '/leaderboard', '/meeting-notes', '/finance', '/support'];
     const currentPath = window.location.pathname;
+    
+    if (pagesWithAppLayout.includes(currentPath)) {
+        return <AppLayout>{children}</AppLayout>;
+    }
+
+    // Các trang không cần Header (đã có Sidebar và TopBar riêng)
+    const pagesWithoutHeader = ['/', '/home', '/posts', '/todo', '/stats', '/profile', '/chat'];
     const needsHeader = !pagesWithoutHeader.includes(currentPath);
 
     if (needsHeader) {
@@ -100,8 +114,12 @@ function ProtectedRoute({ children }) {
         );
     }
 
-    // Các trang chính sử dụng Facebook layout
-    return children;
+    // Các trang chính sử dụng Facebook layout (Home)
+    return (
+        <div className="facebook-layout">
+            {children}
+        </div>
+    );
 }
 
 export default App;

@@ -140,7 +140,7 @@ const Finance = () => {
 
     if (loading) {
         return (
-            <div className="finance-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải dữ liệu tài chính...</p>
@@ -150,24 +150,9 @@ const Finance = () => {
     }
 
     return (
-        <div className="finance-page">
-            <div className="finance-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>💰 Quản lý tài chính CLB</h1>
-                </div>
-                <button 
-                    className="add-transaction-btn"
-                    onClick={() => setShowAddModal(true)}
-                >
-                    ➕ Thêm giao dịch
-                </button>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Quản lý tài chính CLB</h1>
             </div>
 
             <div className="finance-overview">
@@ -231,23 +216,10 @@ const Finance = () => {
             </div>
 
             <div className="transactions-container">
-                <div className="transactions-header">
-                    <h3>📋 Lịch sử giao dịch</h3>
-                    <div className="transactions-count">
-                        {filteredTransactions.length} giao dịch
-                    </div>
-                </div>
-                
                 <div className="transactions-list">
                     {filteredTransactions.map((transaction) => (
                         <div key={transaction.id} className="transaction-card">
                             <div className="transaction-header">
-                                <div className="transaction-type">
-                                    <span className="type-icon">{getTypeIcon(transaction.type)}</span>
-                                    <span className="type-text">
-                                        {transaction.type === 'income' ? 'Thu nhập' : 'Chi phí'}
-                                    </span>
-                                </div>
                                 <div 
                                     className="transaction-amount"
                                     style={{ color: getTypeColor(transaction.type) }}

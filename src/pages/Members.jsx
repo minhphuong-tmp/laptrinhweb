@@ -94,7 +94,7 @@ const Members = () => {
 
     if (loading) {
         return (
-            <div className="members-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải danh sách thành viên...</p>
@@ -104,18 +104,12 @@ const Members = () => {
     }
 
     return (
-        <div className="members-page">
-            <div className="members-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>👥 Quản lý thành viên CLB</h1>
-                </div>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Quản lý thành viên CLB</h1>
+            </div>
+
+            <div className="members-actions">
                 <button 
                     className="add-member-btn"
                     onClick={() => setShowAddModal(true)}

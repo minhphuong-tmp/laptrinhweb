@@ -7,7 +7,7 @@ import NotificationDropdown from './NotificationDropdown';
 import MessageDropdown from './MessageDropdown';
 import './TopBar.css';
 
-const TopBar = ({ totalUnreadCount = 0 }) => {
+const TopBar = () => {
     const { user, signOut, userData } = useAuth();
     const navigate = useNavigate();
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -93,11 +93,6 @@ const TopBar = ({ totalUnreadCount = 0 }) => {
                             title="Tin nhắn"
                         >
                             <span className="btn-icon">💬</span>
-                            {totalUnreadCount > 0 && (
-                                <span className="notification-badge">
-                                    {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-                                </span>
-                            )}
                         </button>
                         <MessageDropdown 
                             isOpen={showMessages}

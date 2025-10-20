@@ -11,10 +11,9 @@ const Sidebar = () => {
     const [userImageUrl, setUserImageUrl] = useState(null);
     const [imageLoading, setImageLoading] = useState(false);
 
-    // CLB Tin học KMA - 12 chức năng
+    // CLB Tin học KMA - 11 chức năng
     const clbMenuItems = [
         { path: '/', icon: '🏠', label: 'Trang chủ', active: location.pathname === '/' },
-        { path: '/posts', icon: '📝', label: 'Bài viết', active: location.pathname === '/posts' },
         { path: '/members', icon: '👥', label: 'Thành viên', active: location.pathname === '/members' },
         { path: '/activities', icon: '📅', label: 'Hoạt động', active: location.pathname === '/activities' },
         { path: '/documents', icon: '📚', label: 'Tài liệu', active: location.pathname === '/documents' },
@@ -51,13 +50,10 @@ const Sidebar = () => {
 
     return (
         <div className="sidebar">
-            <div className="sidebar-header">
-                <h2>LinkUp</h2>
-            </div>
-            
             {/* CLB Tin học KMA - 12 chức năng */}
             <div className="clb-section">
                 <div className="clb-header">
+                    <img className="clb-logo" src="/images/logo.png"  />
                     <h3>CLB Tin học KMA</h3>
                 </div>
                 <nav className="clb-nav">

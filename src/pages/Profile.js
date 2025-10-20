@@ -274,7 +274,6 @@ const Profile = () => {
             const viewportHeight = window.innerHeight;
             const canLoad = hasMoreRef.current && !isLoadingMoreRef.current && !postsLoadingRef.current && !isProcessingRef.current;
             if (pageHeight <= viewportHeight + 40 && canLoad) {
-                console.log('⬇️ Content below viewport height, auto-loading more');
                 handleLoadMore();
             }
         };
@@ -285,7 +284,6 @@ const Profile = () => {
 
     useEffect(() => {
         if (user?.id && !initialLoadRef.current) {
-            console.log('🔄 Initial load triggered for user:', user.id);
             initialLoadRef.current = true;
             setHasLoaded(true);
             loadUserPosts();

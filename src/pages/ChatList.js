@@ -6,6 +6,7 @@ import { deleteConversation, getConversations } from '../services/chatService';
 import './ChatList.css';
 
 const ChatList = () => {
+    console.log('ChatList component rendered');
     const { user } = useAuth();
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -67,10 +68,20 @@ const ChatList = () => {
         const now = new Date();
         const diff = now - date;
 
+        console.log('formatTime debug:', {
+            timestamp,
+            date: date.toISOString(),
+            now: now.toISOString(),
+            diff: diff,
+            diffInDays: Math.floor(diff / 86400000)
+        });
+
         if (diff < 60000) return 'Vừa xong';
         if (diff < 3600000) return `${Math.floor(diff / 60000)} phút trước`;
         if (diff < 86400000) return `${Math.floor(diff / 3600000)} giờ trước`;
-        return date.toLocaleDateString('vi-VN');
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)} ngày trước`;
+        if (diff < 2592000000) return `${Math.floor(diff / 604800000)} tuần trước`;
+        return `${Math.floor(diff / 2592000000)} tháng trước`;
     };
 
     const getConversationName = (conversation) => {
@@ -144,13 +155,27 @@ const ChatList = () => {
                                             {getConversationName(conversation)}
                                         </h3>
                                         <span className="conversation-time">
-                                            {conversation.messages[0] &&
-                                                formatTime(conversation.messages[0].created_at)
-                                            }
+                                            {(() => {
+                                                console.log('Conversation debug:', {
+                                                    id: conversation.id,
+                                                    messages: conversation.messages,
+                                                    messagesLength: conversation.messages?.length
+                                                });
+                                                
+                                                if (conversation.messages && conversation.messages.length > 0) {
+                                                    const lastMessage = conversation.messages[conversation.messages.length - 1];
+                                                    console.log('Last message:', lastMessage);
+                                                    return formatTime(lastMessage.created_at);
+                                                }
+                                                return 'Chưa có tin nhắn';
+                                            })()}
                                         </span>
                                     </div>
                                     <p className="conversation-preview">
-                                        {conversation.messages[0]?.content || 'Chưa có tin nhắn'}
+                                        {conversation.messages && conversation.messages.length > 0 
+                                            ? conversation.messages[conversation.messages.length - 1].content 
+                                            : 'Chưa có tin nhắn'
+                                        }
                                     </p>
                                 </div>
                             </Link>

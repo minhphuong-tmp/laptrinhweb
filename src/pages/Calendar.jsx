@@ -155,7 +155,7 @@ const Calendar = () => {
 
     if (loading) {
         return (
-            <div className="calendar-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải lịch sự kiện...</p>
@@ -165,38 +165,9 @@ const Calendar = () => {
     }
 
     return (
-        <div className="calendar-page">
-            <div className="calendar-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>📋 Lịch sự kiện CLB</h1>
-                </div>
-                <div className="view-controls">
-                    <button 
-                        className={`view-btn ${viewMode === 'month' ? 'active' : ''}`}
-                        onClick={() => setViewMode('month')}
-                    >
-                        Tháng
-                    </button>
-                    <button 
-                        className={`view-btn ${viewMode === 'week' ? 'active' : ''}`}
-                        onClick={() => setViewMode('week')}
-                    >
-                        Tuần
-                    </button>
-                    <button 
-                        className={`view-btn ${viewMode === 'day' ? 'active' : ''}`}
-                        onClick={() => setViewMode('day')}
-                    >
-                        Ngày
-                    </button>
-                </div>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Lịch sự kiện CLB</h1>
             </div>
 
             <div className="calendar-controls">
@@ -238,9 +209,9 @@ const Calendar = () => {
 
             <div className="calendar-container">
                 <div className="calendar-grid">
-                    <div className="calendar-header-row">
+                    <div className="page-header-row">
                         {dayNames.map(day => (
-                            <div key={day} className="day-header">{day}</div>
+                            <div key={day} className="page-header">{day}</div>
                         ))}
                     </div>
                     <div className="calendar-body">
@@ -287,10 +258,9 @@ const Calendar = () => {
                 <div className="events-list">
                     {getEventsForDate(selectedDate).map(event => (
                         <div key={event.id} className="event-card">
-                            <div className="event-header">
-                                <span className="event-icon">{getEventTypeIcon(event.type)}</span>
-                                <span className="event-time">{formatTime(event.time)}</span>
-                            </div>
+                            <div className="page-header">
+                <h1>Lịch sự kiện CLB</h1>
+            </div>
                             <h4 className="event-title">{event.title}</h4>
                             <p className="event-description">{event.description}</p>
                             <div className="event-details">

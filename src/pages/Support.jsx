@@ -113,7 +113,7 @@ const Support = () => {
 
     if (loading) {
         return (
-            <div className="support-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải thông tin hỗ trợ...</p>
@@ -123,18 +123,9 @@ const Support = () => {
     }
 
     return (
-        <div className="support-page">
-            <div className="support-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>📞 Liên hệ & Hỗ trợ CLB</h1>
-                </div>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Liên hệ & Hỗ trợ CLB</h1>
             </div>
 
             <div className="support-tabs">

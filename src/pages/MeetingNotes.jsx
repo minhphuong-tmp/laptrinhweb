@@ -161,7 +161,7 @@ const MeetingNotes = () => {
 
     if (loading) {
         return (
-            <div className="meeting-notes-page">
+            <div className="meeting-page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải biên bản họp...</p>
@@ -171,18 +171,9 @@ const MeetingNotes = () => {
     }
 
     return (
-        <div className="meeting-notes-page">
-            <div className="meeting-notes-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>📝 Biên bản họp CLB</h1>
-                </div>
+        <div className="meeting-page-content">
+            <div className="meeting-page-header">
+                
                 <button 
                     className="create-note-btn"
                     onClick={() => setShowAddModal(true)}
@@ -237,15 +228,6 @@ const MeetingNotes = () => {
                 {filteredNotes.map((note) => (
                     <div key={note.id} className="meeting-note-card">
                         <div className="note-header">
-                            <div className="note-title-section">
-                                <h3 className="note-title">{note.title}</h3>
-                                <div className="note-meta">
-                                    <span className="note-date">
-                                        📅 {new Date(note.meetingDate).toLocaleDateString('vi-VN')} lúc {note.meetingTime}
-                                    </span>
-                                    <span className="note-location">📍 {note.location}</span>
-                                </div>
-                            </div>
                             <div className="note-status">
                                 <span 
                                     className="status-badge"

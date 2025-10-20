@@ -132,7 +132,7 @@ const Activities = () => {
 
     if (loading) {
         return (
-            <div className="activities-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải danh sách hoạt động...</p>
@@ -142,18 +142,12 @@ const Activities = () => {
     }
 
     return (
-        <div className="activities-page">
-            <div className="activities-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>📅 Quản lý hoạt động CLB</h1>
-                </div>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Quản lý hoạt động CLB</h1>
+            </div>
+
+            <div className="activities-actions">
                 <button 
                     className="add-activity-btn"
                     onClick={() => setShowAddModal(true)}

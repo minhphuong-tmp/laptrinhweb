@@ -210,9 +210,9 @@ export const markAllNotificationsAsRead = async (userId) => {
 export const getUnreadNotificationCount = async (userId) => {
     try {
         
-        // First try with data filter
+        // First try with data filter - corrected syntax
         const response = await fetch(
-            `${API_URL}/notifications?receiverId=eq.${userId}&data->is_read=is.false`,
+            `${API_URL}/notifications?receiverId=eq.${userId}&data->>is_read=is.false`,
             {
                 method: 'GET',
                 headers: {

@@ -71,7 +71,7 @@ const Statistics = () => {
 
     if (loading) {
         return (
-            <div className="statistics-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải thống kê...</p>
@@ -81,21 +81,9 @@ const Statistics = () => {
     }
 
     return (
-        <div className="statistics-page">
-            <div className="statistics-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>📈 Thống kê CLB Tin học KMA</h1>
-                </div>
-                <div className="last-updated">
-                    Cập nhật lần cuối: {new Date().toLocaleString('vi-VN')}
-                </div>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Thống kê CLB</h1>
             </div>
 
             {/* Tổng quan */}

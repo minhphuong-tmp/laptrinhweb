@@ -102,7 +102,7 @@ const Announcements = () => {
 
     if (loading) {
         return (
-            <div className="announcements-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải thông báo...</p>
@@ -112,24 +112,9 @@ const Announcements = () => {
     }
 
     return (
-        <div className="announcements-page">
-            <div className="announcements-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>📢 Thông báo CLB</h1>
-                </div>
-                <button 
-                    className="create-announcement-btn"
-                    onClick={() => {/* TODO: Create announcement modal */}}
-                >
-                    ➕ Tạo thông báo
-                </button>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Thông báo CLB</h1>
             </div>
 
             <div className="announcements-filters">
@@ -182,14 +167,6 @@ const Announcements = () => {
                         )}
                         
                         <div className="announcement-header">
-                            <div className="announcement-priority">
-                                <span 
-                                    className="priority-badge"
-                                    style={{ backgroundColor: getPriorityColor(announcement.priority) }}
-                                >
-                                    {getPriorityText(announcement.priority)}
-                                </span>
-                            </div>
                             <div className="announcement-views">
                                 👁️ {announcement.views} lượt xem
                             </div>

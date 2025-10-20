@@ -193,7 +193,7 @@ const Leaderboard = () => {
 
     if (loading) {
         return (
-            <div className="leaderboard-page">
+            <div className="page-content">
                 <div className="loading">
                     <div className="loading-spinner">⏳</div>
                     <p>Đang tải bảng xếp hạng...</p>
@@ -203,24 +203,9 @@ const Leaderboard = () => {
     }
 
     return (
-        <div className="leaderboard-page">
-            <div className="leaderboard-header">
-                <div className="header-left">
-                    <button 
-                        className="back-btn"
-                        onClick={() => navigate('/home')}
-                        title="Quay lại trang chủ"
-                    >
-                        ← Quay lại
-                    </button>
-                    <h1>🏆 Bảng xếp hạng CLB</h1>
-                </div>
-                <div className="header-right">
-                    <div className="current-user-rank">
-                        <span className="rank-label">Xếp hạng của bạn:</span>
-                        <span className="rank-value">#8</span>
-                    </div>
-                </div>
+        <div className="page-content">
+            <div className="page-header">
+                <h1>Bảng xếp hạng CLB</h1>
             </div>
 
             <div className="leaderboard-filters">
