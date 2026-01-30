@@ -1,7 +1,6 @@
 // Helper function to test table schema
 export const testNotesSchema = async () => {
     try {
-        console.log('🔍 Testing notes table schema...');
         
         const authToken = getAuthToken();
         const response = await fetch(`${BASE_URL}/notes?limit=1`, {

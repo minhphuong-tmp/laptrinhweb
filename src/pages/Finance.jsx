@@ -1,16 +1,101 @@
 import { useState, useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import GlitchTitle from '../components/GlitchTitle';
 import './Finance.css';
+import './FinanceCartoon.css';
 
 const Finance = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const shouldReduceMotion = useReducedMotion();
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterType, setFilterType] = useState('all');
     const [filterMonth, setFilterMonth] = useState('all');
     const [showAddModal, setShowAddModal] = useState(false);
+
+    // Cartoon 3D Animation Variants
+    const springConfig = {
+        type: "spring",
+        stiffness: 200,
+        damping: 15
+    };
+
+    const cartoonCardHover = shouldReduceMotion ? {} : {
+        scale: 1.03,
+        rotateX: 2,
+        rotateY: -2,
+        y: -8,
+        transition: springConfig
+    };
+
+    const cartoonCardTap = shouldReduceMotion ? {} : {
+        scale: 0.98,
+        y: -2,
+        transition: { type: "spring", stiffness: 400, damping: 17 }
+    };
+
+    const cartoonButtonHover = shouldReduceMotion ? {} : {
+        scale: 1.05,
+        y: -4,
+        transition: springConfig
+    };
+
+    const cartoonButtonTap = shouldReduceMotion ? {} : {
+        scale: 0.95,
+        y: -1,
+        transition: { type: "spring", stiffness: 500, damping: 20 }
+    };
+
+    const popAnimation = {
+        initial: { scale: 0.9, opacity: 0 },
+        animate: { scale: 1, opacity: 1 },
+        transition: springConfig
+    };
+
+    const slideSquashAnimation = {
+        initial: { 
+            x: -50, 
+            y: 20, 
+            scaleX: 0.8, 
+            scaleY: 0.8,
+            opacity: 0 
+        },
+        animate: { 
+            x: 0, 
+            y: 0, 
+            scaleX: 1, 
+            scaleY: 1,
+            opacity: 1 
+        },
+        transition: springConfig
+    };
+
+    const staggerCartoon = {
+        initial: {},
+        animate: {
+            transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.1
+            }
+        }
+    };
+
+    const staggerItemCartoon = {
+        initial: { 
+            opacity: 0, 
+            y: 30,
+            scale: 0.9
+        },
+        animate: { 
+            opacity: 1, 
+            y: 0,
+            scale: 1,
+            transition: springConfig
+        }
+    };
 
     // Mock data for demonstration
     useEffect(() => {
@@ -140,64 +225,154 @@ const Finance = () => {
 
     if (loading) {
         return (
-            <div className="page-content">
+            <div className="page-content finance-cartoon">
                 <div className="loading">
-                    <div className="loading-spinner">⏳</div>
-                    <p>Đang tải dữ liệu tài chính...</p>
+                    <motion.div
+                        className="loading-spinner"
+                        animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                        ⏳
+                    </motion.div>
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                    >
+                        Đang tải dữ liệu tài chính...
+                    </motion.p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="page-content">
-            <div className="page-header">
-                <h1>Quản lý tài chính CLB</h1>
-            </div>
+        <motion.div
+            className="page-content finance-cartoon"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+        >
+            <motion.div
+                className="page-header"
+                {...slideSquashAnimation}
+            >
+                <motion.h1
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={springConfig}
+                >
+                    💰 Quản lý tài chính CLB
+                </motion.h1>
+            </motion.div>
 
-            <div className="finance-overview">
-                <div className="balance-card">
-                    <div className="balance-icon">💰</div>
+            <motion.div
+                className="finance-overview"
+                variants={staggerCartoon}
+                initial="initial"
+                animate="animate"
+            >
+                <motion.div
+                    className="balance-card"
+                    variants={staggerItemCartoon}
+                    whileHover={cartoonCardHover}
+                    whileTap={cartoonCardTap}
+                >
+                    <motion.div
+                        className="balance-icon"
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                        💰
+                    </motion.div>
                     <div className="balance-content">
                         <div className="balance-label">Số dư hiện tại</div>
-                        <div className="balance-amount">{formatCurrency(currentBalance)}</div>
+                        <motion.div
+                            className="balance-amount"
+                            {...popAnimation}
+                            transition={{ ...springConfig, delay: 0.3 }}
+                        >
+                            {formatCurrency(currentBalance)}
+                        </motion.div>
                     </div>
-                </div>
+                </motion.div>
                 
                 <div className="summary-cards">
-                    <div className="summary-card income">
-                        <div className="summary-icon">📈</div>
+                    <motion.div
+                        className="summary-card income"
+                        variants={staggerItemCartoon}
+                        whileHover={cartoonCardHover}
+                        whileTap={cartoonCardTap}
+                    >
+                        <motion.div
+                            className="summary-icon"
+                            animate={{ rotate: [0, 5, -5, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                            📈
+                        </motion.div>
                         <div className="summary-content">
                             <div className="summary-label">Tổng thu</div>
-                            <div className="summary-amount">{formatCurrency(totalIncome)}</div>
+                            <motion.div
+                                className="summary-amount"
+                                {...popAnimation}
+                                transition={{ ...springConfig, delay: 0.4 }}
+                            >
+                                {formatCurrency(totalIncome)}
+                            </motion.div>
                         </div>
-                    </div>
+                    </motion.div>
                     
-                    <div className="summary-card expense">
-                        <div className="summary-icon">📉</div>
+                    <motion.div
+                        className="summary-card expense"
+                        variants={staggerItemCartoon}
+                        whileHover={cartoonCardHover}
+                        whileTap={cartoonCardTap}
+                    >
+                        <motion.div
+                            className="summary-icon"
+                            animate={{ rotate: [0, -5, 5, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                            📉
+                        </motion.div>
                         <div className="summary-content">
                             <div className="summary-label">Tổng chi</div>
-                            <div className="summary-amount">{formatCurrency(totalExpense)}</div>
+                            <motion.div
+                                className="summary-amount"
+                                {...popAnimation}
+                                transition={{ ...springConfig, delay: 0.5 }}
+                            >
+                                {formatCurrency(totalExpense)}
+                            </motion.div>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
-            </div>
+            </motion.div>
 
-            <div className="finance-filters">
-                <select
+            <motion.div
+                className="finance-filters"
+                {...slideSquashAnimation}
+                transition={{ ...springConfig, delay: 0.2 }}
+            >
+                <motion.select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
                     className="filter-select"
+                    whileHover={cartoonButtonHover}
+                    whileTap={cartoonButtonTap}
                 >
                     <option value="all">Tất cả giao dịch</option>
                     <option value="income">Thu nhập</option>
                     <option value="expense">Chi phí</option>
-                </select>
+                </motion.select>
                 
-                <select
+                <motion.select
                     value={filterMonth}
                     onChange={(e) => setFilterMonth(e.target.value)}
                     className="filter-select"
+                    whileHover={cartoonButtonHover}
+                    whileTap={cartoonButtonTap}
                 >
                     <option value="all">Tất cả tháng</option>
                     <option value="0">Tháng 1</option>
@@ -212,20 +387,38 @@ const Finance = () => {
                     <option value="9">Tháng 10</option>
                     <option value="10">Tháng 11</option>
                     <option value="11">Tháng 12</option>
-                </select>
-            </div>
+                </motion.select>
+            </motion.div>
 
-            <div className="transactions-container">
-                <div className="transactions-list">
-                    {filteredTransactions.map((transaction) => (
-                        <div key={transaction.id} className="transaction-card">
+            <motion.div
+                className="transactions-container"
+                {...slideSquashAnimation}
+                transition={{ ...springConfig, delay: 0.3 }}
+            >
+                <motion.div
+                    className="transactions-list"
+                    variants={staggerCartoon}
+                    initial="initial"
+                    animate="animate"
+                >
+                    {filteredTransactions.map((transaction, index) => (
+                        <motion.div
+                            key={transaction.id}
+                            className="transaction-card"
+                            variants={staggerItemCartoon}
+                            whileHover={cartoonCardHover}
+                            whileTap={cartoonCardTap}
+                            custom={index}
+                        >
                             <div className="transaction-header">
-                                <div 
+                                <motion.div
                                     className="transaction-amount"
                                     style={{ color: getTypeColor(transaction.type) }}
+                                    {...popAnimation}
+                                    transition={{ ...springConfig, delay: 0.1 * index }}
                                 >
                                     {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                                </div>
+                                </motion.div>
                             </div>
                             
                             <div className="transaction-content">
@@ -263,49 +456,96 @@ const Finance = () => {
                             </div>
                             
                             <div className="transaction-actions">
-                                <button className="action-btn edit-btn">✏️ Sửa</button>
-                                <button className="action-btn delete-btn">🗑️ Xóa</button>
+                                <motion.button
+                                    className="action-btn edit-btn"
+                                    whileHover={cartoonButtonHover}
+                                    whileTap={cartoonButtonTap}
+                                >
+                                    ✏️ Sửa
+                                </motion.button>
+                                <motion.button
+                                    className="action-btn delete-btn"
+                                    whileHover={cartoonButtonHover}
+                                    whileTap={cartoonButtonTap}
+                                >
+                                    🗑️ Xóa
+                                </motion.button>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
 
             {filteredTransactions.length === 0 && (
-                <div className="no-results">
+                <motion.div
+                    className="no-results"
+                    {...popAnimation}
+                >
                     <p>Không tìm thấy giao dịch nào phù hợp</p>
-                </div>
+                </motion.div>
             )}
 
-            <div className="finance-reports">
-                <h3>📊 Báo cáo tài chính</h3>
+            <motion.div
+                className="finance-reports"
+                {...slideSquashAnimation}
+                transition={{ ...springConfig, delay: 0.4 }}
+            >
+                <motion.h3
+                    {...popAnimation}
+                    transition={{ ...springConfig, delay: 0.5 }}
+                >
+                    📊 Báo cáo tài chính
+                </motion.h3>
                 <div className="reports-grid">
-                    <div className="report-card">
+                    <motion.div
+                        className="report-card"
+                        variants={staggerItemCartoon}
+                        whileHover={cartoonCardHover}
+                        whileTap={cartoonCardTap}
+                    >
                         <h4>📈 Biểu đồ thu chi theo tháng</h4>
                         <div className="chart-placeholder">
                             <p>Biểu đồ sẽ được hiển thị ở đây</p>
                         </div>
-                    </div>
+                    </motion.div>
                     
-                    <div className="report-card">
+                    <motion.div
+                        className="report-card"
+                        variants={staggerItemCartoon}
+                        whileHover={cartoonCardHover}
+                        whileTap={cartoonCardTap}
+                    >
                         <h4>📋 Phân loại chi phí</h4>
                         <div className="category-breakdown">
-                            {['Phí thành viên', 'Tài trợ', 'Hoạt động', 'Tài liệu', 'Công cụ'].map(category => {
+                            {['Phí thành viên', 'Tài trợ', 'Hoạt động', 'Tài liệu', 'Công cụ'].map((category, index) => {
                                 const categoryAmount = transactions
                                     .filter(t => t.category === category)
                                     .reduce((sum, t) => sum + t.amount, 0);
                                 return (
-                                    <div key={category} className="category-item">
+                                    <motion.div
+                                        key={category}
+                                        className="category-item"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ ...springConfig, delay: 0.6 + index * 0.1 }}
+                                        whileHover={shouldReduceMotion ? {} : { x: 5, scale: 1.02 }}
+                                    >
                                         <span className="category-name">{category}</span>
-                                        <span className="category-amount">{formatCurrency(categoryAmount)}</span>
-                                    </div>
+                                        <motion.span
+                                            className="category-amount"
+                                            {...popAnimation}
+                                            transition={{ ...springConfig, delay: 0.7 + index * 0.1 }}
+                                        >
+                                            {formatCurrency(categoryAmount)}
+                                        </motion.span>
+                                    </motion.div>
                                 );
                             })}
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 };
 

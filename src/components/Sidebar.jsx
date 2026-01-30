@@ -1,7 +1,9 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { getUserImageSrc } from '../services/imageService';
+import { fadeInLeft, buttonHover, buttonTap, staggerContainer, staggerItem } from '../utils/animations';
 import './Sidebar.css';
 
 const Sidebar = () => {
@@ -15,13 +17,12 @@ const Sidebar = () => {
     const clbMenuItems = [
         { path: '/', icon: '🏠', label: 'Trang chủ', active: location.pathname === '/' },
         { path: '/members', icon: '👥', label: 'Thành viên', active: location.pathname === '/members' },
-        { path: '/activities', icon: '📅', label: 'Hoạt động', active: location.pathname === '/activities' },
+        { path: '/activities', icon: '📅', label: 'Lịch sự kiện', active: location.pathname === '/activities' },
         { path: '/documents', icon: '📚', label: 'Tài liệu', active: location.pathname === '/documents' },
         { path: '/statistics', icon: '📈', label: 'Thống kê', active: location.pathname === '/statistics' },
         { path: '/announcements', icon: '📢', label: 'Thông báo CLB', active: location.pathname === '/announcements' },
-        { path: '/calendar', icon: '📋', label: 'Lịch sự kiện', active: location.pathname === '/calendar' },
+        { path: '/curriculum', icon: '📖', label: 'Chương trình học', active: location.pathname === '/curriculum' },
         { path: '/leaderboard', icon: '🏆', label: 'Bảng xếp hạng', active: location.pathname === '/leaderboard' },
-        { path: '/meeting-notes', icon: '📝', label: 'Biên bản họp', active: location.pathname === '/meeting-notes' },
         { path: '/finance', icon: '💰', label: 'Quản lý tài chính', active: location.pathname === '/finance' },
         { path: '/support', icon: '📞', label: 'Liên hệ & Hỗ trợ', active: location.pathname === '/support' },
     ];
@@ -49,25 +50,51 @@ const Sidebar = () => {
     }, [user?.image, user?.name]);
 
     return (
-        <div className="sidebar">
+        <motion.div
+            className="sidebar"
+            initial="initial"
+            animate="animate"
+            variants={fadeInLeft}
+        >
             {/* CLB Tin học KMA - 12 chức năng */}
             <div className="clb-section">
-                <div className="clb-header">
+                <motion.div
+                    className="clb-header"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <img className="clb-logo" src="/images/logo.png"  />
-                    <h3>CLB Tin học KMA</h3>
-                </div>
-                <nav className="clb-nav">
+                    <motion.h3
+                        variants={{
+                            initial: { opacity: 0 },
+                            animate: { opacity: 1 }
+                        }}
+                    >
+                        CLB Tin học KMA
+                    </motion.h3>
+                </motion.div>
+                <motion.nav
+                    className="clb-nav"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                >
                     {clbMenuItems.map((item) => (
-                        <Link
+                        <motion.div
                             key={item.path}
-                            to={item.path}
-                            className={`clb-nav-item ${item.active ? 'active' : ''}`}
+                            variants={staggerItem}
                         >
-                            <span className="clb-nav-icon">{item.icon}</span>
-                            <span className="clb-nav-label">{item.label}</span>
-                        </Link>
+                            <Link
+                                to={item.path}
+                                className={`clb-nav-item ${item.active ? 'active' : ''}`}
+                            >
+                                <span className="clb-nav-icon">{item.icon}</span>
+                                <span className="clb-nav-label">{item.label}</span>
+                            </Link>
+                        </motion.div>
                     ))}
-                </nav>
+                </motion.nav>
             </div>
 
             <div className="sidebar-footer">
@@ -91,18 +118,20 @@ const Sidebar = () => {
                     </div>
                 </div>
                 
-                <button 
+                <motion.button
                     className="logout-btn"
                     onClick={async () => {
                         await signOut();
                         navigate('/login');
                     }}
+                    whileHover={buttonHover}
+                    whileTap={buttonTap}
                 >
                     <span className="logout-icon">🚪</span>
                     <span className="logout-text">Đăng xuất</span>
-                </button>
+                </motion.button>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

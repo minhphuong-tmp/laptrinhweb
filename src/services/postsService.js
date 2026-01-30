@@ -12,7 +12,7 @@ export const fetchUserPosts = async (limit, userId) => {
             .select(`
                 *,
                 user:users(id,name,image),
-                postLikes(*),
+                postLikes(count),
                 comments(count)
             `)
             .order('created_at', { ascending: false })
@@ -39,7 +39,7 @@ export const fetchAllPosts = async (limit, offset = 0) => {
             .select(`
                 *,
                 user:users(id,name,image),
-                postLikes(*),
+                postLikes(count),
                 comments(count)
             `)
             .order('created_at', { ascending: false })
@@ -60,7 +60,8 @@ export const fetchAllPosts = async (limit, offset = 0) => {
 // Lấy thông tin chi tiết của một bài viết
 export const fetchPostById = async (postId) => {
     try {
-        const { data, error } = await supabase
+        // Try with user:users first (if foreign key is userId)
+        let { data, error } = await supabase
             .from('posts')
             .select(`
                 *,
@@ -70,6 +71,29 @@ export const fetchPostById = async (postId) => {
             `)
             .eq('id', postId)
             .single();
+
+        // If that fails, try with users:user_id (if foreign key is user_id)
+        if (error || !data?.user) {
+            const retry = await supabase
+                .from('posts')
+                .select(`
+                    *,
+                    users:user_id(id,name,image),
+                    postLikes(*),
+                    comments(*)
+                `)
+                .eq('id', postId)
+                .single();
+            
+            if (!retry.error && retry.data) {
+                data = retry.data;
+                error = null;
+                // Rename users to user for consistency
+                if (data.users) {
+                    data.user = data.users;
+                }
+            }
+        }
 
         if (error) {
             console.log('fetchPostById error:', error);
@@ -146,46 +170,18 @@ export const deletePost = async (postId) => {
     }
 };
 
-// Like/Unlike bài viết
+// Like/Unlike bài viết (sử dụng likesService)
 export const togglePostLike = async (postId, userId) => {
     try {
-        // Kiểm tra xem user đã like chưa
-        const { data: existingLike, error: checkError } = await supabase
-            .from('postLikes')
-            .select('id')
-            .eq('postId', postId)
-            .eq('userId', userId)
-            .single();
+        // Import likesService dynamically để tránh circular dependency
+        const { toggleLike } = await import('../services/likesService');
+        const result = await toggleLike(postId, userId);
 
-        if (checkError && checkError.code !== 'PGRST116') {
-            console.log('togglePostLike check error:', checkError);
-            return { success: false, msg: 'Could not check like status' };
-        }
-
-        if (existingLike) {
-            // Unlike
-            const { error } = await supabase
-                .from('postLikes')
-                .delete()
-                .eq('id', existingLike.id);
-
-            if (error) {
-                console.log('unlike error:', error);
-                return { success: false, msg: 'Could not unlike the post' };
-            }
+        if (result.success) {
+            return { success: true, message: result.message };
         } else {
-            // Like
-            const { error } = await supabase
-                .from('postLikes')
-                .insert([{ postId, userId }]);
-
-            if (error) {
-                console.log('like error:', error);
-                return { success: false, msg: 'Could not like the post' };
-            }
+            return { success: false, msg: result.message };
         }
-
-        return { success: true };
     } catch (error) {
         console.log('togglePostLike error:', error);
         return { success: false, msg: 'Could not toggle like' };

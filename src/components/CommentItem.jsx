@@ -17,7 +17,11 @@ const CommentItem = ({
     };
 
     return (
-        <div className={`comment-item ${highlight ? 'highlight' : ''}`}>
+        <div 
+            className={`comment-item ${highlight ? 'highlight' : ''}`}
+            data-comment-id={item?.id}
+            id={`comment-${item?.id}`}
+        >
             <Avatar uri={item?.user?.image} size={32} />
             <div className="comment-content">
                 <div className="comment-header">

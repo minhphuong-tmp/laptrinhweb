@@ -1,70 +1,302 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Announcements.css';
+import { getCurrentUserCLBInfo, clbApi } from '../services/clbService';
+import { createNotification } from '../services/notificationService';
+import { supabase } from '../lib/supabase';
 
 const Announcements = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterPriority, setFilterPriority] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [newAnnouncement, setNewAnnouncement] = useState({
+        title: '',
+        content: '',
+        priority: 'medium',
+        tags: '',
+    });
+    const [modalUserRole, setModalUserRole] = useState(null);
+    const [modalRoleLoading, setModalRoleLoading] = useState(false);
+    const lastScrollTimestampRef = useRef(0);
 
-    // Mock data for demonstration
+    // Load dữ liệu thật từ notifications_clb
     useEffect(() => {
-        const mockAnnouncements = [
-            {
-                id: 1,
-                title: 'Thông báo về cuộc thi Hackathon KMA 2024',
-                content: 'CLB Tin học KMA tổ chức cuộc thi Hackathon với chủ đề "Giải pháp số cho giáo dục". Thời gian: 20-21/02/2024. Đăng ký tại: https://hackathon.kma.edu.vn',
-                priority: 'high',
-                author: 'Nguyễn Văn A - Chủ nhiệm CLB',
-                publishDate: '2024-01-15',
-                isPinned: true,
-                views: 156,
-                tags: ['Cuộc thi', 'Hackathon', 'Lập trình']
-            },
-            {
-                id: 2,
-                title: 'Lịch họp CLB tháng 2/2024',
-                content: 'Thông báo lịch họp CLB định kỳ tháng 2/2024 vào ngày 25/02/2024 lúc 18:00 tại phòng A101. Nội dung: Tổng kết tháng 1 và kế hoạch tháng 2.',
-                priority: 'medium',
-                author: 'Trần Thị B - Phó CLB',
-                publishDate: '2024-01-20',
+        const fetchAnnouncements = async () => {
+            try {
+                setLoading(true);
+                const { data, error } = await supabase
+                    .from('notifications_clb')
+                    .select(`
+                        *,
+                        users:created_by (
+                            id,
+                            name,
+                            email
+                        )
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading announcements:', error);
+                    setAnnouncements([]);
+                } else if (data && Array.isArray(data)) {
+                    setAnnouncements(data.map(item => ({
+                        id: item.id,
+                        title: item.title,
+                        content: item.content,
+                        priority: item.priority || 'medium',
+                        author: item.users?.name || user?.name || 'Ẩn danh',
+                        publishDate: item.created_at?.slice(0, 10) || '',
                 isPinned: false,
-                views: 89,
-                tags: ['Họp CLB', 'Lịch trình']
-            },
-            {
-                id: 3,
-                title: 'Cập nhật quy định CLB mới',
-                content: 'Ban chủ nhiệm CLB thông báo về việc cập nhật quy định thành viên. Các thành viên vui lòng đọc kỹ và tuân thủ theo quy định mới.',
-                priority: 'high',
-                author: 'Lê Văn C - Ban chủ nhiệm',
-                publishDate: '2024-01-18',
-                isPinned: true,
-                views: 234,
-                tags: ['Quy định', 'Cập nhật']
-            },
-            {
-                id: 4,
-                title: 'Thông báo nghỉ lễ Tết Nguyên đán',
-                content: 'CLB sẽ nghỉ hoạt động từ ngày 8/2 đến 15/2/2024 để nghỉ lễ Tết Nguyên đán. Các hoạt động sẽ tiếp tục từ ngày 16/2/2024.',
-                priority: 'low',
-                author: 'Phạm Thị D - Ban chủ nhiệm',
-                publishDate: '2024-01-25',
-                isPinned: false,
-                views: 67,
-                tags: ['Nghỉ lễ', 'Tết']
+                        views: 0,
+                        tags: item.tags || [],
+                    })));
+                }
+            } catch (error) {
+                console.error('Error fetching announcements:', error);
+                setAnnouncements([]);
+            } finally {
+                setLoading(false);
             }
-        ];
+        };
+
+        fetchAnnouncements();
+    }, [user]);
+
+    // Handle scroll to specific announcement from notification
+    useEffect(() => {
+        const scrollToAnnouncementId = location.state?.scrollToAnnouncementId;
+        const scrollTimestamp = location.state?.scrollTimestamp;
+        if (!scrollToAnnouncementId || announcements.length === 0) return;
+
+        // Update last scroll timestamp to track this request
+        // Each new timestamp means a new click, so we should always process it
+        if (scrollTimestamp) {
+            // Only skip if this exact same timestamp was processed (same click event)
+            // This prevents duplicate processing from React's strict mode or double renders
+            if (scrollTimestamp === lastScrollTimestampRef.current) {
+                console.log('⏭️ [Announcements] Skipping duplicate scroll request (same timestamp):', scrollTimestamp);
+                return;
+            }
+            lastScrollTimestampRef.current = scrollTimestamp;
+        }
+
+        console.log('🔍 [Announcements] Scroll to announcement requested:', scrollToAnnouncementId, 'timestamp:', scrollTimestamp);
+
+        // Find the announcement
+        const targetAnnouncement = announcements.find(a => 
+            String(a.id) === String(scrollToAnnouncementId) || a.id === scrollToAnnouncementId
+        );
+
+        if (!targetAnnouncement) {
+            console.warn('⚠️ [Announcements] Announcement not found:', scrollToAnnouncementId);
+            // Clear location state
+            navigate(location.pathname, { replace: true, state: {} });
+            return;
+        }
+
+        // Clear filters to ensure announcement is visible
+        let needsFilterClear = false;
+        if (filterPriority !== 'all' && targetAnnouncement.priority !== filterPriority) {
+            setFilterPriority('all');
+            needsFilterClear = true;
+        }
+        if (searchTerm && !targetAnnouncement.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+            !targetAnnouncement.content.toLowerCase().includes(searchTerm.toLowerCase())) {
+            setSearchTerm('');
+            needsFilterClear = true;
+        }
+
+        // Helper function to try scrolling to announcement
+        const tryScrollToAnnouncement = () => {
+            const announcementId = String(scrollToAnnouncementId);
+            const selectors = [
+                `#announcement-${announcementId}`,
+                `[data-announcement-id="${announcementId}"]`,
+                `[data-announcement-id="${scrollToAnnouncementId}"]`
+            ];
+
+            for (const selector of selectors) {
+                const element = document.querySelector(selector);
+                if (element) {
+                    // Remove highlight from any previously highlighted element
+                    document.querySelectorAll('.announcement-card.highlighted').forEach(el => {
+                        el.classList.remove('highlighted');
+                    });
+                    
+                    // Scroll to element
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Add highlight class
+                    element.classList.add('highlighted');
+                    
+                    // Remove highlight after animation completes (2 seconds)
+                    setTimeout(() => {
+                        element.classList.remove('highlighted');
+                    }, 2000);
+                    
+                    console.log('✅ [Announcements] Scrolled to announcement:', scrollToAnnouncementId);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // If filters were cleared, wait for DOM to update before scrolling
+        const scrollDelay = needsFilterClear ? 500 : 300;
+
+        // Retry with delays if element not found
+        let attempts = 0;
+        const maxAttempts = 15;
+        const retry = () => {
+            attempts++;
+            if (tryScrollToAnnouncement()) {
+                // Don't clear location state immediately - allow re-clicking
+                // State will be cleared when navigating away or on next navigation
+                console.log('✅ [Announcements] Scroll completed, keeping state for potential re-clicks');
+                return;
+            }
+            if (attempts < maxAttempts) {
+                setTimeout(retry, 200);
+            } else {
+                console.warn('⚠️ [Announcements] Announcement element not found after', maxAttempts, 'attempts:', scrollToAnnouncementId);
+                // Don't clear state even if scroll failed - allow retry
+            }
+        };
+
+        setTimeout(retry, scrollDelay);
+    }, [location.state?.scrollToAnnouncementId, location.state?.scrollTimestamp, announcements, navigate, location.pathname, filterPriority, searchTerm]);
+
+    const handleOpenModal = () => {
+        setShowCreateForm(true);
+        if (user?.id) {
+            setModalRoleLoading(true);
+            getCurrentUserCLBInfo(user.id).then(res => {
+                const roleForDebug = res.success && res.data ? res.data.role : null;
+                console.log('[DEBUG] userId:', user && user.id, '| role:', roleForDebug);
+                setModalUserRole(roleForDebug);
+            }).finally(() => setModalRoleLoading(false));
+        } else {
+            setModalUserRole(null);
+        }
+    };
+
+    const modalIsManager = modalUserRole === 'Chủ nhiệm CLB' || modalUserRole === 'Phó Chủ Nhiệm';
+
+    const handleCreateAnnouncement = async (e) => {
+        e.preventDefault();
+        if (!modalIsManager) {
+            alert('Chỉ Chủ nhiệm CLB hoặc Phó Chủ Nhiệm mới có quyền tạo thông báo!');
+            return;
+        }
+        if (!newAnnouncement.title || !newAnnouncement.content) return;
         
-        setTimeout(() => {
-            setAnnouncements(mockAnnouncements);
-            setLoading(false);
-        }, 1000);
-    }, []);
+        try {
+            const now = new Date();
+            const { data, error } = await supabase
+                .from('notifications_clb')
+                .insert([{
+                    title: newAnnouncement.title,
+                    content: newAnnouncement.content,
+                    priority: newAnnouncement.priority,
+                    tags: newAnnouncement.tags.split(',').map(t => t.trim()).filter(Boolean),
+                    created_at: now.toISOString(),
+                    created_by: user?.id,
+                }])
+                .select(`
+                    *,
+                    users:created_by (
+                        id,
+                        name,
+                        email
+                    )
+                `)
+                .single();
+
+            if (!error && data) {
+                setAnnouncements([{
+                    id: data.id,
+                    title: data.title,
+                    content: data.content,
+                    priority: data.priority,
+                    author: data.users?.name || user?.name || 'Bạn',
+                    publishDate: data.created_at?.slice(0, 10) || '',
+                    isPinned: false,
+                    views: 0,
+                    tags: data.tags || [],
+                }, ...announcements]);
+                setShowCreateForm(false);
+                setNewAnnouncement({ title: '', content: '', priority: 'medium', tags: '' });
+                
+                // Tạo notification cho tất cả thành viên CLB
+                try {
+                    // Lấy danh sách tất cả thành viên CLB
+                    const membersResult = await clbApi.getMembers();
+                    if (membersResult.success && membersResult.data) {
+                        const members = membersResult.data;
+                        console.log('📋 Danh sách thành viên CLB:', members.length);
+                        
+                        // Lấy role của người tạo
+                        const creatorMember = members.find(m => m.user_id === user?.id);
+                        const creatorRole = creatorMember?.role || 'Chủ Nhiệm CLB';
+                        console.log('👤 Role của người tạo:', creatorRole);
+                        
+                        // Tạo title cho notification
+                        const notificationTitle = `${creatorRole} vừa đăng một thông báo`;
+                        
+                        // Tạo notification cho mỗi thành viên (trừ người tạo)
+                        const membersToNotify = members.filter(member => {
+                            const hasUserId = member.user_id && member.user_id !== user?.id;
+                            const hasUserData = member.users && member.users.id;
+                            return hasUserId && hasUserData;
+                        });
+                        
+                        console.log(`📢 Sẽ tạo notification cho ${membersToNotify.length} thành viên`);
+                        
+                        const notificationPromises = membersToNotify.map(member => 
+                            createNotification({
+                                title: notificationTitle,
+                                senderId: user?.id,
+                                receiverId: member.user_id,
+                                type: 'announcement',
+                                announcementId: data.id,
+                                postId: null,
+                                commentId: null,
+                                is_read: false,
+                                data: {
+                                    announcementTitle: newAnnouncement.title
+                                }
+                            }).catch(err => {
+                                console.error(`❌ Lỗi tạo notification cho ${member.user_id}:`, err);
+                                return null;
+                            })
+                        );
+                        
+                        // Thực hiện tất cả notifications song song
+                        const results = await Promise.allSettled(notificationPromises);
+                        const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+                        console.log(`✅ Đã tạo ${successCount}/${membersToNotify.length} thông báo cho thành viên CLB`);
+                    } else {
+                        console.warn('⚠️ Không thể lấy danh sách thành viên CLB');
+                    }
+                } catch (notifError) {
+                    console.error('❌ Lỗi khi tạo notification cho thành viên:', notifError);
+                    // Không hiển thị lỗi cho user vì thông báo đã được tạo thành công
+                }
+            } else {
+                alert('Lỗi tạo thông báo: ' + (error?.message || error));
+            }
+        } catch (error) {
+            console.error('Error creating announcement:', error);
+            alert('Lỗi tạo thông báo: ' + error.message);
+        }
+    };
 
     const filteredAnnouncements = announcements.filter(announcement => {
         const matchesSearch = announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -113,9 +345,61 @@ const Announcements = () => {
 
     return (
         <div className="page-content">
-            <div className="page-header">
+            <div className="announcements-header">
+                <div className="header-left">
                 <h1>Thông báo CLB</h1>
+                    <p>Xem và quản lý các thông báo của CLB</p>
+                </div>
+                <div className="header-right">
+                    <button className="create-activity-btn" onClick={handleOpenModal}>
+                        ➕ Tạo thông báo
+                    </button>
+                </div>
             </div>
+
+            {showCreateForm && (
+                <div className="announcement-modal-backdrop">
+                    <form className="announcement-create-form" onSubmit={handleCreateAnnouncement}>
+                        <h2><span style={{marginRight:4}}>📢</span> Tạo thông báo mới</h2>
+                        {modalRoleLoading && <div style={{color:'#888',textAlign:'center',fontWeight:600,marginBottom:12}}>Đang kiểm tra quyền...</div>}
+                        {!modalRoleLoading && !modalIsManager && (
+                            <div style={{color:'#e74c3c',background:'#ffeded', borderRadius:7, marginBottom:10, padding:'6px 10px', textAlign:'center', fontWeight:600}}>
+                                <div style={{fontSize:48, marginBottom:8}}>🔒</div>
+                                Bạn không có quyền tạo thông báo!<br/>Chỉ Chủ nhiệm CLB hoặc Phó Chủ Nhiệm mới có thể tạo thông báo mới.
+                                <div style={{marginTop:12}}><button type="button" className="action-btn view-btn" onClick={()=>setShowCreateForm(false)}>Đã hiểu</button></div>
+                            </div>
+                        )}
+                        {modalIsManager && !modalRoleLoading && (
+                            <>
+                                <div>
+                                    <label>Tiêu đề</label>
+                                    <input type="text" value={newAnnouncement.title} onChange={e=>setNewAnnouncement({...newAnnouncement, title:e.target.value})} required />
+                                </div>
+                                <div>
+                                    <label>Nội dung</label>
+                                    <textarea value={newAnnouncement.content} onChange={e=>setNewAnnouncement({...newAnnouncement, content:e.target.value})} rows={5} required/>
+                                </div>
+                                <div>
+                                    <label>Độ ưu tiên</label>
+                                    <select value={newAnnouncement.priority} onChange={e=>setNewAnnouncement({...newAnnouncement, priority:e.target.value})}>
+                                        <option value="high">Quan trọng</option>
+                                        <option value="medium">Thường</option>
+                                        <option value="low">Thông tin</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Tags (phân cách bằng dấu phẩy)</label>
+                                    <input type="text" value={newAnnouncement.tags} onChange={e=>setNewAnnouncement({...newAnnouncement, tags:e.target.value})}/>
+                                </div>
+                                <div style={{marginTop:16,display:'flex',gap:8,justifyContent:'flex-end'}}>
+                                    <button type="button" className="action-btn edit-btn" onClick={()=>setShowCreateForm(false)}>Huỷ</button>
+                                    <button type="submit" className="action-btn view-btn">Tạo thông báo</button>
+                                </div>
+                            </>
+                        )}
+                    </form>
+                </div>
+            )}
 
             <div className="announcements-filters">
                 <div className="search-box">
@@ -161,7 +445,12 @@ const Announcements = () => {
 
             <div className="announcements-list">
                 {filteredAnnouncements.map((announcement) => (
-                    <div key={announcement.id} className={`announcement-card ${announcement.isPinned ? 'pinned' : ''}`}>
+                    <div 
+                        key={announcement.id} 
+                        id={`announcement-${announcement.id}`}
+                        data-announcement-id={announcement.id}
+                        className={`announcement-card ${announcement.isPinned ? 'pinned' : ''}`}
+                    >
                         {announcement.isPinned && (
                             <div className="pinned-badge">📌 Đã ghim</div>
                         )}

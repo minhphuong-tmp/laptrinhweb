@@ -3,12 +3,15 @@ import { getConversations } from '../services/chatService';
 import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
 import GroupAvatar from './GroupAvatar';
+import ChatPopup from './ChatPopup';
 import './MessageDropdown.css';
 
 const MessageDropdown = ({ isOpen, onClose }) => {
     const { user } = useAuth();
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [chatPopupOpen, setChatPopupOpen] = useState(false);
+    const [selectedConversationId, setSelectedConversationId] = useState(null);
     const dropdownRef = useRef(null);
 
     // Close dropdown when clicking outside
@@ -53,15 +56,16 @@ const MessageDropdown = ({ isOpen, onClose }) => {
             console.log('🔍 getConversations result:', result);
             
             if (result.success) {
-                // Lấy 5 cuộc trò chuyện gần nhất
-                const recentConversations = result.data.slice(0, 5);
-                console.log('🔍 Recent conversations:', recentConversations);
-                console.log('🔍 First conversation structure:', recentConversations[0]);
-                console.log('🔍 Conversation members:', recentConversations.map(c => c.conversation_members));
-                console.log('🔍 Conversation keys:', recentConversations.map(c => Object.keys(c)));
-                setConversations(recentConversations);
+                // Load tất cả cuộc trò chuyện
+                const allConversations = result.data || [];
+                console.log('🔍 All conversations loaded:', allConversations.length);
+                console.log('🔍 First conversation structure:', allConversations[0]);
+                console.log('🔍 Conversation members:', allConversations.map(c => c.conversation_members));
+                console.log('🔍 Conversation keys:', allConversations.map(c => Object.keys(c)));
+                setConversations(allConversations);
             } else {
-                console.error('Error loading conversations:', result.msg);
+                console.error('❌ Error loading conversations:', result.msg);
+                setConversations([]);
             }
         } catch (error) {
             console.error('Error loading conversations:', error);
@@ -141,14 +145,24 @@ const MessageDropdown = ({ isOpen, onClose }) => {
     };
 
     const handleConversationClick = (conversationId) => {
-        // Đóng dropdown và chuyển đến trang chat
-        onClose();
-        window.location.href = `/chat/${conversationId}`;
+        console.log('🔔 Clicking conversation:', conversationId);
+        // Mở ChatPopup trước, sau đó đóng dropdown
+        setSelectedConversationId(conversationId);
+        setChatPopupOpen(true);
+        // Đóng dropdown sau một chút để đảm bảo ChatPopup đã được mount
+        setTimeout(() => {
+            onClose();
+        }, 100);
     };
 
-    if (!isOpen) return null;
+    const handleCloseChatPopup = () => {
+        setChatPopupOpen(false);
+        setSelectedConversationId(null);
+    };
 
     return (
+        <>
+        {isOpen && (
         <div className="message-dropdown" ref={dropdownRef}>
             <div className="message-header">
                 <h3>Tin nhắn</h3>
@@ -181,7 +195,19 @@ const MessageDropdown = ({ isOpen, onClose }) => {
                                         {getConversationName(conversation)}
                                     </div>
                                     <div className="conversation-preview">
-                                        {conversation.last_message?.content || 'Chưa có tin nhắn'}
+                                        {conversation.last_message?.content 
+                                            ? (() => {
+                                                const senderId = conversation.last_message.sender_id || conversation.last_message.sender?.id;
+                                                const senderName = conversation.last_message.sender?.name || 'Người dùng';
+                                                const isOwnMessage = senderId === user?.id;
+                                                const displayName = isOwnMessage ? 'Tôi' : senderName;
+                                                const messageContent = conversation.last_message.content;
+                                                const fullMessage = `${displayName}: ${messageContent}`;
+                                                return fullMessage.length > 50 
+                                                    ? fullMessage.substring(0, 50) + '...'
+                                                    : fullMessage;
+                                            })()
+                                            : 'Chưa có tin nhắn'}
                                     </div>
                                 </div>
                                 <div className="conversation-time">
@@ -200,19 +226,17 @@ const MessageDropdown = ({ isOpen, onClose }) => {
                     </div>
                 )}
             </div>
-
-            <div className="message-footer">
-                <button 
-                    className="view-all-btn"
-                    onClick={() => {
-                        onClose();
-                        window.location.href = '/chat';
-                    }}
-                >
-                    Xem tất cả tin nhắn
-                </button>
-            </div>
         </div>
+        )}
+
+            {/* Chat Popup - Render outside dropdown để không bị ảnh hưởng khi dropdown đóng */}
+            {chatPopupOpen && selectedConversationId && (
+                <ChatPopup
+                    conversationId={selectedConversationId}
+                    onClose={handleCloseChatPopup}
+                />
+            )}
+        </>
     );
 };
 

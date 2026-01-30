@@ -47,6 +47,53 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
                         usersData = await usersResponse.json();
                     }
 
+                    // Load comment likes count và check if current user liked
+                    const commentIds = commentsData.map(c => c.id).join(',');
+                    let likesData = [];
+                    let userLikes = [];
+                    
+                    if (commentIds && currentUser) {
+                        // Get likes count for each comment
+                        const likesUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/commentLikes?commentId=in.(${commentIds})&select=commentId`;
+                        const likesResponse = await fetch(likesUrl, {
+                            method: 'GET',
+                            headers: {
+                                'apikey': apiKey,
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'count=exact'
+                            }
+                        });
+
+                        if (likesResponse.ok) {
+                            likesData = await likesResponse.json();
+                            
+                            // Get which comments current user liked
+                            const userLikesUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/commentLikes?commentId=in.(${commentIds})&userId=eq.${currentUser.id}&select=commentId`;
+                            const userLikesResponse = await fetch(userLikesUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'apikey': apiKey,
+                                    'Authorization': `Bearer ${apiKey}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (userLikesResponse.ok) {
+                                userLikes = await userLikesResponse.json();
+                            }
+                        }
+                    }
+
+                    // Count likes per comment
+                    const likesCountMap = {};
+                    likesData.forEach(like => {
+                        likesCountMap[like.commentId] = (likesCountMap[like.commentId] || 0) + 1;
+                    });
+
+                    // Get comments that current user liked
+                    const userLikedComments = new Set(userLikes.map(like => like.commentId));
+
                     // Format comments with user info
                     const formattedComments = commentsData.map(comment => {
                         const user = usersData.find(u => u.id === comment.userId);
@@ -58,30 +105,14 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
                                 name: user?.name || 'Unknown User',
                                 image: user?.image || null
                             },
-                            likes: comment.likes || 0,
+                            likes: likesCountMap[comment.id] || 0,
+                            likes_count: likesCountMap[comment.id] || 0,
+                            isLiked: userLikedComments.has(comment.id),
                             replies: comment.replies || []
                         };
                     });
 
-                    
-                    // If no comments, add a test comment for demo
-                    if (formattedComments.length === 0) {
-                        const testComment = {
-                            id: 'test-' + Date.now(),
-                            content: 'Đây là comment test để kiểm tra hiển thị',
-                            user: {
-                                id: currentUser?.id || 'test-user',
-                                name: currentUser?.name || 'Test User',
-                                image: currentUser?.image || null
-                            },
-                            created_at: new Date().toISOString(),
-                            likes: 0,
-                            replies: []
-                        };
-                        setComments([testComment]);
-                    } else {
-                        setComments(formattedComments);
-                    }
+                    setComments(formattedComments);
                 } else {
                     console.error('Failed to load comments:', commentsResponse.status);
                     const errorText = await commentsResponse.text();
@@ -97,7 +128,7 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
         };
 
         loadComments();
-    }, [postId]);
+    }, [postId, currentUser]);
 
     const addComment = useCallback(async (content, image = null, video = null) => {
         setLoading(true);
@@ -240,36 +271,104 @@ const useRealtimeComments = (postId, currentUser, initialComments = []) => {
 
     const likeComment = useCallback(async (commentId) => {
         try {
-            const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
-
-            // Update likes in Supabase
-            const response = await fetch(`https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/comments?id=eq.${commentId}`, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': apiKey,
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    likes: (comments.find(c => c.id === commentId)?.likes || 0) + 1
-                })
-            });
-
-            if (response.ok) {
+            // Check if this is a test comment (shouldn't be saved to database)
+            if (String(commentId).startsWith('test-')) {
+                console.log('⚠️ Cannot like test comment, skipping API call');
+                // Just update UI for test comments
                 setComments(prev => 
                     prev.map(comment => 
                         comment.id === commentId 
-                            ? { ...comment, likes: (comment.likes || 0) + 1 }
+                            ? { ...comment, likes: (comment.likes || 0) + 1, isLiked: true }
                             : comment
                     )
                 );
+                return;
+            }
+
+            if (!currentUser) {
+                setError('Bạn cần đăng nhập để thích bình luận');
+                return;
+            }
+
+            const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+
+            // Find the comment to get current likes count
+            const currentComment = comments.find(c => c.id === commentId);
+            const currentLikes = currentComment?.likes || 0;
+            const isLiked = currentComment?.isLiked || false;
+
+            if (isLiked) {
+                // Unlike: Delete from commentLikes table
+                const deleteUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/commentLikes?commentId=eq.${commentId}&userId=eq.${currentUser.id}`;
+                const response = await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    setComments(prev => 
+                        prev.map(comment => 
+                            comment.id === commentId 
+                                ? { ...comment, likes: Math.max(0, currentLikes - 1), likes_count: Math.max(0, currentLikes - 1), isLiked: false }
+                                : comment
+                        )
+                    );
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to unlike comment:', response.status, errorText);
+                    setError('Không thể bỏ thích bình luận');
+                }
             } else {
-                console.error('Failed to like comment');
+                // Like: Insert into commentLikes table
+                const insertUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/commentLikes';
+                const response = await fetch(insertUrl, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        commentId: commentId,
+                        userId: currentUser.id
+                    })
+                });
+
+                if (response.ok) {
+                    setComments(prev => 
+                        prev.map(comment => 
+                            comment.id === commentId 
+                                ? { ...comment, likes: currentLikes + 1, likes_count: currentLikes + 1, isLiked: true }
+                                : comment
+                        )
+                    );
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to like comment:', response.status, errorText);
+                    // If already liked (unique constraint), just update UI
+                    if (response.status === 409 || response.status === 400) {
+                        setComments(prev => 
+                            prev.map(comment => 
+                                comment.id === commentId 
+                                    ? { ...comment, isLiked: true }
+                                    : comment
+                            )
+                        );
+                    } else {
+                        setError('Không thể thích bình luận');
+                    }
+                }
             }
         } catch (err) {
+            console.error('Error liking comment:', err);
             setError('Không thể thích bình luận');
         }
-    }, [comments]);
+    }, [comments, currentUser]);
 
     const deleteComment = useCallback(async (commentId) => {
         try {

@@ -8,11 +8,15 @@ const CommentModal = ({
     isOpen, 
     onClose, 
     post, 
-    currentUser
+    currentUser,
+    onPostUpdate
 }) => {
     const [newComment, setNewComment] = useState('');
     const commentsEndRef = useRef(null);
     const commentsStartRef = useRef(null);
+    const [isLiked, setIsLiked] = useState(post?.isLiked || false);
+    const [likesCount, setLikesCount] = useState(post?.likes_count || 0);
+    const [liking, setLiking] = useState(false);
 
     // Use real-time comments hook
     const {
@@ -25,21 +29,137 @@ const CommentModal = ({
         deleteComment
     } = useRealtimeComments(post?.id, currentUser, []);
 
+    // Sync state with post prop
+    useEffect(() => {
+        if (post) {
+            setIsLiked(post.isLiked || false);
+            setLikesCount(post.likes_count || 0);
+        }
+    }, [post]);
+
     // Debug post data
     useEffect(() => {
         if (isOpen && post) {
-            console.log('🔍 CommentModal - Post data:', post);
-            console.log('🔍 CommentModal - Post keys:', Object.keys(post));
-            console.log('🔍 CommentModal - Post images:', post.images);
-            console.log('🔍 CommentModal - Post image:', post.image);
-            console.log('🔍 CommentModal - Post video:', post.video);
-            console.log('🔍 CommentModal - Post content:', post.content);
-            console.log('🔍 CommentModal - Post body:', post.body);
-            console.log('🔍 CommentModal - Post isLiked:', post.isLiked);
-            console.log('🔍 CommentModal - Post likes_count:', post.likes_count);
-            console.log('🔍 CommentModal - Comments:', comments);
         }
     }, [isOpen, post, comments]);
+
+    // Handle like/unlike post
+    const handleLike = async () => {
+        if (!post || !currentUser || liking) return;
+
+        setLiking(true);
+        
+        // Optimistic update
+        const newIsLiked = !isLiked;
+        const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
+        setIsLiked(newIsLiked);
+        setLikesCount(newLikesCount);
+        
+        // Notify parent immediately for real-time update
+        if (onPostUpdate) {
+            onPostUpdate({
+                ...post,
+                isLiked: newIsLiked,
+                likes_count: newLikesCount
+            });
+        }
+
+        try {
+            const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdGxha2R2bG1rYWFseW1ncndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzA3MTYsImV4cCI6MjA2NDQwNjcxNn0.FeGpQzJon_remo0_-nQ3e4caiWjw5un9p7rK3EcJfjY';
+
+            // Check if user already liked
+            const checkLikeUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes?postId=eq.${post.id}&userId=eq.${currentUser.id}`;
+            const checkResponse = await fetch(checkLikeUrl, {
+                method: 'GET',
+                headers: {
+                    'apikey': apiKey,
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (checkResponse.ok) {
+                const existingLikes = await checkResponse.json();
+
+                if (existingLikes.length > 0) {
+                    // Unlike - delete like (user already liked, so we're unliking)
+                    const deleteUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes?id=eq.${existingLikes[0].id}`;
+                    const deleteResponse = await fetch(deleteUrl, {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': apiKey,
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (deleteResponse.ok) {
+                        console.log('✅ Unlike successful');
+                        // Callback already called after optimistic update, no need to call again
+                    } else {
+                        // Rollback on error
+                        setIsLiked(!newIsLiked);
+                        setLikesCount(likesCount);
+                        // Rollback in parent as well
+                        if (onPostUpdate) {
+                            onPostUpdate({
+                                ...post,
+                                isLiked: !newIsLiked,
+                                likes_count: likesCount
+                            });
+                        }
+                    }
+                } else {
+                    // Like - add new like (user hasn't liked yet, so we're liking)
+                    const addLikeUrl = 'https://oqtlakdvlmkaalymgrwd.supabase.co/rest/v1/postLikes';
+                    const addResponse = await fetch(addLikeUrl, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': apiKey,
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            postId: post.id,
+                            userId: currentUser.id
+                        })
+                    });
+
+                    if (addResponse.ok) {
+                        console.log('✅ Like successful');
+                        // Callback already called after optimistic update, no need to call again
+                    } else {
+                        // Rollback on error
+                        setIsLiked(!newIsLiked);
+                        setLikesCount(likesCount);
+                        // Rollback in parent as well
+                        if (onPostUpdate) {
+                            onPostUpdate({
+                                ...post,
+                                isLiked: !newIsLiked,
+                                likes_count: likesCount
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error toggling like:', error);
+            // Rollback on error
+            setIsLiked(!newIsLiked);
+            setLikesCount(likesCount);
+            // Rollback in parent as well
+            if (onPostUpdate) {
+                onPostUpdate({
+                    ...post,
+                    isLiked: !newIsLiked,
+                    likes_count: likesCount
+                });
+            }
+        } finally {
+            setLiking(false);
+        }
+    };
 
     const scrollToComments = () => {
         // Scroll to the comments section
@@ -123,41 +243,69 @@ const CommentModal = ({
                             {/* Post Images */}
                             {post?.images && post.images.length > 0 && (
                                 <div className="post-images">
-                                    {post.images.map((image, index) => (
-                                        <img 
-                                            key={index}
-                                            src={image} 
-                                            alt={`Post image ${index + 1}`}
-                                            className="post-image"
-                                            onError={(e) => {
-                                                console.error('Failed to load image:', image);
-                                                e.target.style.display = 'none';
-                                            }}
-                                            onLoad={() => {
-                                                console.log('Image loaded successfully:', image);
-                                            }}
-                                        />
-                                    ))}
+                                    {post.images.map((image, index) => {
+                                        // Process image URL - handle both full URLs and relative paths
+                                        let imageUrl = image;
+                                        if (imageUrl && !imageUrl.startsWith('http')) {
+                                            // If it's a relative path, construct full Supabase storage URL
+                                            if (imageUrl.startsWith('postImages/') || imageUrl.startsWith('upload/')) {
+                                                imageUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/public/upload/${imageUrl}`;
+                                            } else {
+                                                // Fallback: try upload bucket
+                                                imageUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/public/upload/${imageUrl}`;
+                                            }
+                                        }
+                                        
+                                        return (
+                                            <img 
+                                                key={index}
+                                                src={imageUrl} 
+                                                alt={`Post image ${index + 1}`}
+                                                className="post-image"
+                                                onError={(e) => {
+                                                    console.error('Failed to load image:', imageUrl, 'Original:', image);
+                                                    e.target.style.display = 'none';
+                                                }}
+                                                onLoad={() => {
+                                                    console.log('Image loaded successfully:', imageUrl);
+                                                }}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             )}
                             
                             {/* Single Post Image */}
-                            {post?.image && !post?.images && (
-                                <div className="post-images">
-                                    <img 
-                                        src={post.image} 
-                                        alt="Post content"
-                                        className="post-image"
-                                        onError={(e) => {
-                                            console.error('Failed to load image:', post.image);
-                                            e.target.style.display = 'none';
-                                        }}
-                                        onLoad={() => {
-                                            console.log('Image loaded successfully:', post.image);
-                                        }}
-                                    />
-                                </div>
-                            )}
+                            {post?.image && !post?.images && (() => {
+                                // Process image URL - handle both full URLs and relative paths
+                                let imageUrl = post.image;
+                                if (imageUrl && !imageUrl.startsWith('http')) {
+                                    // If it's a relative path, construct full Supabase storage URL
+                                    if (imageUrl.startsWith('postImages/') || imageUrl.startsWith('upload/')) {
+                                        imageUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/public/upload/${imageUrl}`;
+                                    } else {
+                                        // Fallback: try upload bucket
+                                        imageUrl = `https://oqtlakdvlmkaalymgrwd.supabase.co/storage/v1/object/public/upload/${imageUrl}`;
+                                    }
+                                }
+                                
+                                return (
+                                    <div className="post-images">
+                                        <img 
+                                            src={imageUrl} 
+                                            alt="Post content"
+                                            className="post-image"
+                                            onError={(e) => {
+                                                console.error('Failed to load image:', imageUrl, 'Original:', post.image);
+                                                e.target.style.display = 'none';
+                                            }}
+                                            onLoad={() => {
+                                                console.log('Image loaded successfully:', imageUrl);
+                                            }}
+                                        />
+                                    </div>
+                                );
+                            })()}
                             
                             {/* Debug: Show if no images */}
                             {(!post?.images || post.images.length === 0) && !post?.image && (
@@ -183,9 +331,9 @@ const CommentModal = ({
                         {/* Post Stats */}
                         <div className="post-stats">
                             <div className="post-likes">
-                                {post?.likes_count > 0 && (
+                                {likesCount > 0 && (
                                     <span className="likes-count">
-                                        <span className={`heart-icon ${post?.isLiked ? 'liked' : ''}`}>♥</span> {post.likes_count} lượt thích
+                                        <span className={`heart-icon ${isLiked ? 'liked' : ''}`}>♥</span> {likesCount} lượt thích
                                     </span>
                                 )}
                             </div>
@@ -200,9 +348,15 @@ const CommentModal = ({
 
                         {/* Post Actions */}
                         <div className="post-actions">
-                            <button className="action-button like-btn">
-                                <span className="action-icon">♥</span>
-                                <span className="action-text">Thích</span>
+                            <button 
+                                className={`action-button like-btn ${isLiked ? 'liked' : ''}`}
+                                onClick={handleLike}
+                                disabled={liking || !currentUser}
+                            >
+                                <span className="action-icon">
+                                    <span className={`heart-icon ${isLiked ? 'liked' : ''}`}>♥</span>
+                                </span>
+                                <span className="action-text">{isLiked ? 'Đã thích' : 'Thích'}</span>
                             </button>
                             <button className="action-button comment-btn">
                                 <span className="action-icon">💬</span>
@@ -234,6 +388,8 @@ const CommentModal = ({
                                 {comments.map((comment, index) => (
                                     <div 
                                         key={comment.id} 
+                                        id={`comment-${comment.id}`}
+                                        data-comment-id={comment.id}
                                         className="comment-item"
                                         ref={index === 0 ? commentsStartRef : null}
                                     >

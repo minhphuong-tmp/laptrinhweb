@@ -30,13 +30,10 @@ const RightSidebar = () => {
             if (showLoading) {
                 setConversationsLoading(true);
             }
-            console.log('RightSidebar: Loading conversations for user:', user.id);
             const result = await getConversations(user.id);
-            console.log('RightSidebar: Conversations result:', result);
             if (result.success) {
-                const conversations = result.data.slice(0, 5); // Chỉ hiển thị 5 cuộc trò chuyện gần nhất
-                setConversations(conversations);
-                console.log('RightSidebar: Set conversations:', conversations);
+                // Load tất cả cuộc trò chuyện
+                setConversations(result.data);
                 // Load unread counts sau khi load conversations
                 loadUnreadCounts();
             }
@@ -55,7 +52,6 @@ const RightSidebar = () => {
         
         try {
             const counts = await getAllUnreadMessageCounts(user.id);
-            console.log('RightSidebar: Unread counts:', counts);
             setUnreadCounts(counts);
             
             const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
@@ -75,7 +71,6 @@ const RightSidebar = () => {
     useEffect(() => {
         if (!user?.id) return;
 
-        console.log('RightSidebar: Setting up real-time subscription for user:', user.id);
         
         // Subscribe to messages table changes
         const messagesSubscription = supabase
@@ -122,6 +117,7 @@ const RightSidebar = () => {
 
     // Handle opening chat popup
     const handleOpenChatPopup = async (conversationId) => {
+        console.log('🔔 Opening chat popup for conversation:', conversationId);
         setSelectedConversationId(conversationId);
         setChatPopupOpen(true);
         
@@ -285,16 +281,6 @@ const RightSidebar = () => {
                                 );
                             })
                         )}
-                    </div>
-                    
-                    <div className="right-sidebar-footer">
-                        <button 
-                            className="new-chat-btn"
-                            onClick={() => navigate('/chat')}
-                        >
-                            <span className="btn-icon">💬</span>
-                            <span>Xem tất cả</span>
-                        </button>
                     </div>
                 </div>
             </div>

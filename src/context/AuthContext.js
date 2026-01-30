@@ -50,7 +50,6 @@ export const AuthProvider = ({ children }) => {
                             try {
                                 const userDataResult = await getUserData(authData.user.id);
                                 if (userDataResult.success && userDataResult.data) {
-                                    console.log('🔍 Loaded user data from database:', userDataResult.data);
                                     setUser(userDataResult.data);
                                 } else {
                                     console.log('⚠️ Failed to load user data from database, keeping basic user');
@@ -121,7 +120,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('sb-oqtlakdvlmkaalymgrwd-auth-token', JSON.stringify(authData));
 
             if (authData?.user) {
-                // Sử dụng user từ session đơn giản
+                // Tạm thời set basic user để UI có thể render ngay
                 const basicUser = {
                     id: authData.user.id,
                     email: authData.user.email,
@@ -132,6 +131,26 @@ export const AuthProvider = ({ children }) => {
                 };
                 setUser(basicUser);
                 setLoading(false);
+
+                // Fetch full user data from database ngay sau khi đăng nhập
+                // Để có avatar và thông tin đầy đủ
+                try {
+                    const userDataResult = await getUserData(authData.user.id);
+                    if (userDataResult.success && userDataResult.data) {
+                        console.log('✅ Loaded full user data after login:', userDataResult.data);
+                        setUser(userDataResult.data);
+                    } else {
+                        console.log('⚠️ Failed to load user data from database, keeping basic user');
+                        // Thử sync user với auth nếu chưa có trong database
+                        const syncResult = await syncUserWithAuth(authData.user.id);
+                        if (syncResult.success && syncResult.data) {
+                            setUser(syncResult.data);
+                        }
+                    }
+                } catch (dbError) {
+                    console.error('Error loading user data from database after login:', dbError);
+                    // Keep basic user if database fails
+                }
             }
 
             return { success: true, data: authData };

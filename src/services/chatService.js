@@ -90,6 +90,7 @@ export const getConversations = async (userId) => {
                 return {
                     ...item.conversation,
                     conversation_members: members || [],
+                    last_message: lastMessage || null,
                     messages: lastMessage ? [lastMessage] : []
                 };
             })

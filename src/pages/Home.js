@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import GroupAvatar from '../components/GroupAvatar';
 import Sidebar from '../components/Sidebar';
@@ -8,7 +8,7 @@ import ChatPopup from '../components/ChatPopup';
 import CommentModal from '../components/CommentModal';
 import CreatePostModal from '../components/CreatePostModal';
 import { useAuth } from '../context/AuthContext';
-import { fetchAllPosts } from '../services/postsService';
+import { fetchAllPosts, fetchPostById as fetchPostByIdService } from '../services/postsService';
 import { getUserImageSrc } from '../services/imageService';
 import { getConversations } from '../services/chatService';
 import { getAllUnreadMessageCounts, markConversationAsRead } from '../services/unreadMessagesService';
@@ -18,6 +18,7 @@ import './FacebookLayout.css';
 
 const Home = () => {
     const { user, signOut, debugSession } = useAuth();
+    const location = useLocation();
     
     // Debug user data removed for production
     const navigate = useNavigate();
@@ -208,6 +209,261 @@ const Home = () => {
         setChatPopupOpen(false);
         setSelectedConversationId(null);
     };
+
+    // Fetch a specific post by ID
+    const fetchPostById = async (postId) => {
+        try {
+            // Use the service function which properly joins with users table
+            const result = await fetchPostByIdService(postId);
+            
+            if (result.success && result.data) {
+                const post = result.data;
+                
+                // Handle different user field names (user, users, or direct user_id)
+                let userData = null;
+                if (post.user) {
+                    userData = post.user;
+                } else if (post.users) {
+                    userData = post.users;
+                } else if (post.userId || post.user_id) {
+                    // If no join result, user data might be missing - we'll need to fetch it separately
+                    userData = {
+                        id: post.userId || post.user_id,
+                        name: 'Người dùng',
+                        image: null
+                    };
+                }
+                
+                // Transform to match the expected format
+                return {
+                    id: post.id,
+                    content: post.content || post.body,
+                    created_at: post.created_at,
+                    image: post.image || post.file,
+                    user: userData || {
+                        id: post.userId || post.user_id,
+                        name: 'Người dùng',
+                        image: null
+                    },
+                    likes_count: post.postLikes?.length || post.likes_count || 0,
+                    comments_count: post.comments?.length || post.comments_count || 0,
+                    isLiked: false
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching post by ID:', error);
+            return null;
+        }
+    };
+
+    // Handle scroll to specific post from notification
+    useEffect(() => {
+        const handleScrollToPost = async () => {
+            const scrollToPostId = location.state?.scrollToPostId;
+            const scrollToCommentId = location.state?.scrollToCommentId;
+            if (!scrollToPostId) return;
+            
+            console.log('🔍 [Home] Scroll to post requested:', scrollToPostId, scrollToCommentId ? `comment: ${scrollToCommentId}` : '');
+            
+            // Check if post already exists in posts list
+            const existingPost = posts.find(p => p.id === scrollToPostId || String(p.id) === String(scrollToPostId));
+
+            // Helper: try to scroll to element, return true if success
+            const tryScrollToElement = () => {
+                const selector = `[id="post-${scrollToPostId}"][data-post-id="${scrollToPostId}"]`;
+                const postElement = document.querySelector(selector) ||
+                                    document.getElementById(`post-${scrollToPostId}`) || 
+                                    document.querySelector(`[data-post-id="${scrollToPostId}"]`);
+                if (!postElement) return false;
+                postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                postElement.style.transition = 'box-shadow 0.3s ease';
+                postElement.style.boxShadow = '0 0 20px rgba(24, 119, 242, 0.5)';
+                setTimeout(() => { postElement.style.boxShadow = ''; }, 2000);
+                return true;
+            };
+
+            // Helper: try to scroll to comment, return true if success
+            const tryScrollToComment = () => {
+                if (!scrollToCommentId) return false;
+                
+                // Try both string and number versions of commentId
+                const commentIdStr = String(scrollToCommentId);
+                const commentIdNum = Number(scrollToCommentId);
+                
+                // Try multiple selectors
+                const selectors = [
+                    `#comment-${commentIdStr}`,
+                    `#comment-${commentIdNum}`,
+                    `[data-comment-id="${commentIdStr}"]`,
+                    `[data-comment-id="${commentIdNum}"]`,
+                    `[id="comment-${commentIdStr}"]`,
+                    `[id="comment-${commentIdNum}"]`
+                ];
+                
+                let commentElement = null;
+                for (const selector of selectors) {
+                    commentElement = document.querySelector(selector);
+                    if (commentElement) break;
+                }
+                
+                if (!commentElement) {
+                    // Log all available comment IDs for debugging
+                    const allComments = document.querySelectorAll('[data-comment-id], [id^="comment-"]');
+                    const commentIds = Array.from(allComments).map(el => 
+                        el.id || el.getAttribute('data-comment-id')
+                    ).filter(Boolean);
+                    if (commentIds.length > 0) {
+                        console.log('🔍 [Home] Available comment IDs in DOM:', commentIds);
+                    }
+                    return false;
+                }
+                
+                commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                commentElement.style.transition = 'background-color 0.3s ease';
+                commentElement.style.backgroundColor = 'rgba(24, 119, 242, 0.1)';
+                setTimeout(() => { commentElement.style.backgroundColor = ''; }, 3000);
+                return true;
+            };
+
+            if (existingPost) {
+                console.log('✅ [Home] Post found in list, trying to scroll...');
+                setTimeout(() => {
+                    const ok = tryScrollToElement();
+                    if (ok && scrollToCommentId) {
+                        // Open comment modal to show the comment
+                        console.log('📝 [Home] Opening comment modal for comment:', scrollToCommentId);
+                        setSelectedPost(existingPost);
+                        setCommentModalOpen(true);
+                        
+                        // Wait for modal to open and comments to load, then scroll to comment
+                        setTimeout(() => {
+                            let commentAttempts = 0;
+                            const retryComment = () => {
+                                commentAttempts += 1;
+                                
+                                // Check if modal is open and comments section exists
+                                const modal = document.querySelector('.comment-modal');
+                                const commentsList = document.querySelector('.comments-list');
+                                
+                                if (!modal || !commentsList) {
+                                    if (commentAttempts < 20) {
+                                        setTimeout(retryComment, 200);
+                                    }
+                                    return;
+                                }
+                                
+                                const commentOk = tryScrollToComment();
+                                if (!commentOk && commentAttempts < 20) {
+                                    setTimeout(retryComment, 300);
+                                } else if (commentOk) {
+                                    console.log('✅ [Home] Scrolled to comment in modal:', scrollToCommentId);
+                                } else {
+                                    console.log('⚠️ [Home] Comment element not found in modal after', commentAttempts, 'attempts:', scrollToCommentId);
+                                }
+                            };
+                            setTimeout(retryComment, 800); // Wait longer for modal and comments to render
+                        }, 500);
+                    }
+                    if (!ok) {
+                        console.log('⚠️ [Home] Post element not in DOM yet, will fetch to ensure presence');
+                    }
+                }, 300);
+            }
+
+            if (!existingPost || !document.getElementById(`post-${scrollToPostId}`)) {
+                console.log('⚠️ [Home] Post not in list, fetching...');
+                // Fetch the post
+                const fetchedPost = await fetchPostById(scrollToPostId);
+                if (fetchedPost) {
+                    console.log('✅ [Home] Post fetched, adding to list');
+                    // Add to posts list, ensuring no duplicates
+                    setPosts(prevPosts => {
+                        // Check if post already exists
+                        const postExists = prevPosts.some(p => 
+                            String(p.id) === String(fetchedPost.id)
+                        );
+                        
+                        if (postExists) {
+                            console.log('⚠️ [Home] Post already exists in list, skipping add');
+                            return prevPosts; // Don't add duplicate
+                        }
+                        
+                        // Use Map to deduplicate by id (handle both number and string)
+                        const postMap = new Map();
+                        prevPosts.forEach(p => {
+                            const key = String(p.id);
+                            if (!postMap.has(key)) {
+                                postMap.set(key, p);
+                            }
+                        });
+                        // Add fetched post
+                        const fetchedKey = String(fetchedPost.id);
+                        postMap.set(fetchedKey, fetchedPost);
+                        
+                        // Convert back to array and sort by created_at
+                        const sortedPosts = Array.from(postMap.values()).sort((a, b) => 
+                            new Date(b.created_at) - new Date(a.created_at)
+                        );
+                        return sortedPosts;
+                    });
+                    
+                    // Scroll to post after it's added (with small retries)
+                    let attempts = 0;
+                    const retry = () => {
+                        attempts += 1;
+                        const ok = tryScrollToElement();
+                        if (ok && scrollToCommentId) {
+                            // Open comment modal to show the comment
+                            console.log('📝 [Home] Opening comment modal for comment:', scrollToCommentId);
+                            setSelectedPost(fetchedPost);
+                            setCommentModalOpen(true);
+                            
+                            // Wait for modal to open and comments to load, then scroll to comment
+                            setTimeout(() => {
+                                let commentAttempts = 0;
+                                const retryComment = () => {
+                                    commentAttempts += 1;
+                                    
+                                    // Check if modal is open and comments section exists
+                                    const modal = document.querySelector('.comment-modal');
+                                    const commentsList = document.querySelector('.comments-list');
+                                    
+                                    if (!modal || !commentsList) {
+                                        if (commentAttempts < 20) {
+                                            setTimeout(retryComment, 200);
+                                        }
+                                        return;
+                                    }
+                                    
+                                    const commentOk = tryScrollToComment();
+                                    if (!commentOk && commentAttempts < 20) {
+                                        setTimeout(retryComment, 300);
+                                    } else if (commentOk) {
+                                        console.log('✅ [Home] Scrolled to comment in modal:', scrollToCommentId);
+                                    } else {
+                                        console.log('⚠️ [Home] Comment element not found in modal after', commentAttempts, 'attempts:', scrollToCommentId);
+                                    }
+                                };
+                                setTimeout(retryComment, 800); // Wait longer for modal and comments to render
+                            }, 500);
+                        }
+                        if (!ok && attempts < 8) setTimeout(retry, 250);
+                    };
+                    setTimeout(retry, 300);
+                } else {
+                    console.error('❌ [Home] Failed to fetch post');
+                }
+            }
+            
+            // Clear state to prevent re-triggering
+            navigate(location.pathname, { replace: true, state: null });
+        };
+        
+        if (posts.length > 0 || location.state?.scrollToPostId) {
+            handleScrollToPost();
+        }
+    }, [location.state?.scrollToPostId, location.state?.scrollToCommentId, posts.length, navigate, location.pathname]);
 
     useEffect(() => {
 
@@ -429,6 +685,40 @@ const Home = () => {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, [isLoadingPosts, hasMorePosts]);
+
+    // Handle hash navigation to scroll to specific post
+    useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#post-')) {
+                const postId = hash.replace('#post-', '');
+                // Wait for posts to load
+                setTimeout(() => {
+                    const postElement = document.getElementById(`post-${postId}`) || 
+                                      document.querySelector(`[data-post-id="${postId}"]`);
+                    if (postElement) {
+                        postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Highlight the post briefly
+                        postElement.style.transition = 'box-shadow 0.3s ease';
+                        postElement.style.boxShadow = '0 0 20px rgba(24, 119, 242, 0.5)';
+                        setTimeout(() => {
+                            postElement.style.boxShadow = '';
+                        }, 2000);
+                    }
+                }, 500);
+            }
+        };
+
+        // Handle hash on mount and when posts change
+        handleHashChange();
+        
+        // Listen for hash changes
+        window.addEventListener('hashchange', handleHashChange);
+        
+        return () => {
+            window.removeEventListener('hashchange', handleHashChange);
+        };
+    }, [posts.length]); // Re-run when posts are loaded
 
     const loadMorePosts = () => {
         if (!isLoadingPosts && hasMorePosts) {
@@ -654,15 +944,35 @@ const Home = () => {
                             </div>
                         ) : (
                             posts.map((post) => (
-                                <div key={post.id} className="post-card">
+                                <div key={post.id} id={`post-${post.id}`} data-post-id={post.id} className="post-card">
                                     <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px'}}>
-                                        <Avatar
-                                            src={post.user?.image}
-                                            name={post.user?.name}
-                                            size={40}
-                                        />
+                                        <div 
+                                            style={{cursor: 'pointer'}}
+                                            onClick={() => {
+                                                console.log('🖱️ Avatar clicked for user:', post.user?.name, 'ID:', post.user?.id);
+                                                navigate(`/profile/${post.user?.id}`);
+                                            }}
+                                        >
+                                            <Avatar
+                                                src={post.user?.image}
+                                                name={post.user?.name}
+                                                size={40}
+                                            />
+                                        </div>
                                         <div>
-                                            <h4 style={{margin: '0 0 0px 0', fontSize: '16px', fontWeight: '600', color: '#1c1e21'}}>
+                                            <h4 
+                                                style={{
+                                                    margin: '0 0 0px 0', 
+                                                    fontSize: '16px', 
+                                                    fontWeight: '600', 
+                                                    color: '#1c1e21',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onClick={() => {
+                                                    console.log('🖱️ Name clicked for user:', post.user?.name, 'ID:', post.user?.id);
+                                                    navigate(`/profile/${post.user?.id}`);
+                                                }}
+                                            >
                                                 {post.user?.name || 'Unknown User'}
                                             </h4>
                                             <span style={{fontSize: '14px', color: '#65676b'}}>
@@ -756,7 +1066,7 @@ const Home = () => {
                     )}
                 </div>
             </div>
-            
+
             {/* Right Sidebar - Conversations */}
             <div className="right-sidebar">
                 <div className="right-sidebar-content">
@@ -845,16 +1155,16 @@ const Home = () => {
                                 </div>
                             ))
                         )}
-                    </div>
-                    
+            </div>
+
                     <div className="right-sidebar-footer">
-                        <button 
+                <button 
                             className="new-chat-btn"
                             onClick={() => navigate('/chat')}
-                        >
+                >
                             <span className="btn-icon">💬</span>
                             <span>Xem tất cả</span>
-                        </button>
+                </button>
                     </div>
                 </div>
             </div>
@@ -890,6 +1200,34 @@ const Home = () => {
                     }}
                     post={selectedPost}
                     currentUser={user}
+                    onPostUpdate={(updatedPost) => {
+                        console.log('🔄 [Home] Updating post from modal:', updatedPost);
+                        // Update post in posts state
+                        setPosts(prevPosts =>
+                            prevPosts.map(p => {
+                                // Compare both string and number IDs
+                                if (String(p.id) === String(updatedPost.id) || p.id === updatedPost.id) {
+                                    const updated = { 
+                                        ...p, 
+                                        isLiked: updatedPost.isLiked,
+                                        likes_count: updatedPost.likes_count
+                                    };
+                                    console.log('✅ [Home] Post updated:', updated);
+                                    return updated;
+                                }
+                                return p;
+                            })
+                        );
+                        // Also update selectedPost if it's the same post
+                        if (selectedPost && (String(selectedPost.id) === String(updatedPost.id) || selectedPost.id === updatedPost.id)) {
+                            setSelectedPost({
+                                ...selectedPost,
+                                isLiked: updatedPost.isLiked,
+                                likes_count: updatedPost.likes_count
+                            });
+                            console.log('✅ [Home] Selected post updated');
+                        }
+                    }}
                 />
             )}
         </div>

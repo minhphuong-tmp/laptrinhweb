@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import GroupAvatar from '../components/GroupAvatar';
+import CallModal from '../components/CallModal';
 import { useAuth } from '../context/AuthContext';
 import { getConversationById, getMessages, markConversationAsRead, sendMessage } from '../services/chatService';
+import { subscribeToSignaling } from '../services/webrtcService';
 import './Chat.css';
 
 const Chat = () => {
@@ -14,14 +16,27 @@ const Chat = () => {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const [showCallModal, setShowCallModal] = useState(false);
+    const [callType, setCallType] = useState(null); // 'voice' or 'video'
+    const [incomingCall, setIncomingCall] = useState(null);
     const messagesEndRef = useRef(null);
+    const signalingUnsubscribeRef = useRef(null);
 
     useEffect(() => {
         if (id && user) {
             loadConversation();
             loadMessages();
             setupPolling();
+            setupIncomingCallListener();
         }
+        
+        // Cleanup on unmount
+        return () => {
+            if (signalingUnsubscribeRef.current) {
+                signalingUnsubscribeRef.current();
+                signalingUnsubscribeRef.current = null;
+            }
+        };
     }, [id, user]);
 
     useEffect(() => {
@@ -34,12 +49,9 @@ const Chat = () => {
 
     const loadConversation = async () => {
         try {
-            console.log('🔍 Loading conversation with ID:', id);
             const result = await getConversationById(id);
-            console.log('📊 Conversation result:', result);
             if (result.success) {
                 setConversation(result.data);
-                console.log('✅ Conversation loaded:', result.data);
             } else {
                 console.error('❌ Failed to load conversation:', result.msg);
             }
@@ -147,6 +159,75 @@ const Chat = () => {
         );
     };
 
+    const getOtherUser = () => {
+        if (!conversation || conversation.type === 'group') return null;
+        return conversation.conversation_members?.find(
+            member => member.user_id !== user.id
+        );
+    };
+
+    const setupIncomingCallListener = () => {
+        if (!user?.id) return null;
+
+        console.log('📞 [Chat] Setting up incoming call listener for user:', user.id);
+        
+        const unsubscribe = subscribeToSignaling(user.id, (message) => {
+            console.log('📨 [Chat] Received signaling message:', message);
+            
+            if (message.type === 'offer') {
+                console.log('📞 [Chat] Incoming call offer received from:', message.sender_id);
+                
+                // Check if this is for current conversation
+                // Use setConversation to access latest state
+                setConversation(currentConversation => {
+                    if (!currentConversation || currentConversation.type === 'group') {
+                        console.log('⚠️ [Chat] No conversation or group chat, ignoring call');
+                        return currentConversation;
+                    }
+                    
+                    const otherUser = currentConversation.conversation_members?.find(
+                        member => member.user_id !== user.id
+                    );
+                    
+                    console.log('👤 [Chat] Other user in conversation:', otherUser?.user_id);
+                    
+                    if (otherUser && message.sender_id === otherUser.user_id) {
+                        console.log('✅ [Chat] Incoming call matches current conversation');
+                        // Determine call type from offer data
+                        const offerData = typeof message.data === 'string' 
+                            ? JSON.parse(message.data) 
+                            : message.data;
+                        const hasVideo = offerData?.offer?.sdp?.includes('video') || 
+                                       offerData?.offer?.sdp?.includes('m=video');
+                        
+                        console.log('📹 [Chat] Call type determined:', hasVideo ? 'video' : 'voice');
+                        
+                        setCallType(hasVideo ? 'video' : 'voice');
+                        setIncomingCall({
+                            senderId: message.sender_id,
+                            messageId: message.id
+                        });
+                        setShowCallModal(true);
+                        console.log('✅ [Chat] CallModal opened for incoming call');
+                    } else {
+                        console.log('⚠️ [Chat] Incoming call from different user, ignoring');
+                    }
+                    
+                    return currentConversation;
+                });
+            } else if (message.type === 'hangup') {
+                console.log('📞 [Chat] Received hangup signal');
+                // Close call modal if open
+                setShowCallModal(false);
+                setCallType(null);
+                setIncomingCall(null);
+            }
+        });
+
+        signalingUnsubscribeRef.current = unsubscribe;
+        return unsubscribe;
+    };
+
     if (loading) {
         return (
             <div className="facebook-layout">
@@ -174,6 +255,28 @@ const Chat = () => {
                             {conversation?.type === 'group' ? 'Nhóm chat' : 'Tin nhắn riêng'}
                         </p>
                     </div>
+                </div>
+                <div className="chat-actions">
+                    <button 
+                        className="chat-action-btn"
+                        onClick={() => {
+                            setCallType('voice');
+                            setShowCallModal(true);
+                        }}
+                        title="Gọi điện"
+                    >
+                        📞
+                    </button>
+                    <button 
+                        className="chat-action-btn"
+                        onClick={() => {
+                            setCallType('video');
+                            setShowCallModal(true);
+                        }}
+                        title="Gọi video"
+                    >
+                        📹
+                    </button>
                 </div>
             </header>
 
@@ -227,6 +330,38 @@ const Chat = () => {
                 </div>
             </form>
             </div>
+
+            {/* Call Modal */}
+            {showCallModal && callType && (() => {
+                const otherUser = getOtherUser();
+                if (!otherUser) {
+                    console.warn('⚠️ [Chat] No other user found for call');
+                    return null;
+                }
+                
+                return (
+                    <CallModal
+                        key={`call-${id}-${callType}-${Date.now()}`}
+                        isOpen={showCallModal}
+                        onClose={() => {
+                            console.log('🚪 [Chat] CallModal onClose called, resetting state');
+                            setShowCallModal(false);
+                            setCallType(null);
+                            setIncomingCall(null);
+                            // Force a small delay to ensure cleanup completes
+                            setTimeout(() => {
+                                console.log('✅ [Chat] State reset complete');
+                            }, 200);
+                        }}
+                        callType={callType}
+                        otherUserId={otherUser.user_id}
+                        otherUserName={otherUser.user?.name}
+                        otherUserImage={otherUser.user?.image}
+                        conversationId={id}
+                        isIncoming={!!incomingCall}
+                    />
+                );
+            })()}
         </div>
     );
 };

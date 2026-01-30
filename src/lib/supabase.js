@@ -27,10 +27,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
 })
 
-console.log('Supabase client created:', supabase);
 
 // Test connection với timeout
-console.log('Testing Supabase connection...');
 const testConnection = async () => {
     try {
         const controller = new AbortController();

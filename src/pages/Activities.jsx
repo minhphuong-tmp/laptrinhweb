@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import CreateActivity from '../components/CreateActivity';
+import EventCalendar from '../components/EventCalendar';
+import { getActivities, deleteActivity } from '../services/activityService';
 import './Activities.css';
 
 const Activities = () => {
@@ -8,279 +11,354 @@ const Activities = () => {
     const navigate = useNavigate();
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [filterStatus, setFilterStatus] = useState('all');
     const [filterType, setFilterType] = useState('all');
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
-    // Mock data for demonstration
+    // Load activities from database
     useEffect(() => {
-        const mockActivities = [
-            {
-                id: 1,
-                title: 'Workshop Lập trình Web với React',
-                description: 'Học cách xây dựng ứng dụng web hiện đại với React.js',
-                type: 'Workshop',
-                date: '2024-01-15',
-                time: '14:00',
-                location: 'Phòng A101',
-                maxParticipants: 30,
-                currentParticipants: 25,
-                status: 'upcoming',
-                organizer: 'Nguyễn Văn A',
-                requirements: 'Kiến thức cơ bản về HTML, CSS, JavaScript'
-            },
-            {
-                id: 2,
-                title: 'Cuộc thi Hackathon KMA 2024',
-                description: 'Cuộc thi lập trình 48h với chủ đề "Giải pháp số cho giáo dục"',
-                type: 'Cuộc thi',
-                date: '2024-02-20',
-                time: '08:00',
-                location: 'Hội trường lớn',
-                maxParticipants: 100,
-                currentParticipants: 85,
-                status: 'upcoming',
-                organizer: 'Trần Thị B',
-                requirements: 'Thành viên CLB Tin học'
-            },
-            {
-                id: 3,
-                title: 'Seminar AI và Machine Learning',
-                description: 'Tìm hiểu về trí tuệ nhân tạo và học máy trong thực tế',
-                type: 'Seminar',
-                date: '2024-01-10',
-                time: '19:00',
-                location: 'Online - Zoom',
-                maxParticipants: 200,
-                currentParticipants: 150,
-                status: 'completed',
-                organizer: 'Lê Văn C',
-                requirements: 'Không yêu cầu kiến thức trước'
-            },
-            {
-                id: 4,
-                title: 'Họp CLB tháng 1/2024',
-                description: 'Tổng kết hoạt động tháng 12 và kế hoạch tháng 1',
-                type: 'Họp CLB',
-                date: '2024-01-05',
-                time: '18:00',
-                location: 'Phòng họp CLB',
-                maxParticipants: 50,
-                currentParticipants: 35,
-                status: 'completed',
-                organizer: 'Phạm Thị D',
-                requirements: 'Thành viên CLB'
+        const loadActivities = async () => {
+            try {
+                setLoading(true);
+                console.log('📂 Loading activities from database...');
+                
+                const filters = {
+                    activity_type: filterType,
+                    status: filterStatus,
+                    search: searchTerm
+                };
+                
+                const { data, error } = await getActivities(filters);
+                
+                if (error) {
+                    console.error('❌ Error loading activities:', error);
+                    setActivities([]);
+                } else {
+                    console.log('✅ Activities loaded:', data.length);
+                    setActivities(data);
+                }
+            } catch (error) {
+                console.error('❌ Error loading activities:', error);
+                setActivities([]);
+            } finally {
+                setLoading(false);
             }
-        ];
-        
-        setTimeout(() => {
-            setActivities(mockActivities);
-            setLoading(false);
-        }, 1000);
-    }, []);
+        };
 
-    const filteredActivities = activities.filter(activity => {
-        const matchesStatus = filterStatus === 'all' || activity.status === filterStatus;
-        const matchesType = filterType === 'all' || activity.type === filterType;
-        return matchesStatus && matchesType;
-    });
+        loadActivities();
+    }, [filterType, filterStatus, searchTerm]);
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'upcoming':
-                return '#3498db';
-            case 'ongoing':
-                return '#f39c12';
-            case 'completed':
-                return '#27ae60';
-            case 'cancelled':
-                return '#e74c3c';
-            default:
-                return '#95a5a6';
-        }
-    };
-
-    const getStatusText = (status) => {
-        switch (status) {
-            case 'upcoming':
-                return 'Sắp diễn ra';
-            case 'ongoing':
-                return 'Đang diễn ra';
-            case 'completed':
-                return 'Đã hoàn thành';
-            case 'cancelled':
-                return 'Đã hủy';
-            default:
-                return status;
-        }
-    };
-
-    const getTypeIcon = (type) => {
+    const getActivityTypeIcon = (type) => {
         switch (type) {
-            case 'Workshop':
-                return '🛠️';
-            case 'Cuộc thi':
-                return '🏆';
-            case 'Seminar':
-                return '🎓';
-            case 'Họp CLB':
-                return '👥';
-            default:
-                return '📅';
+            case 'workshop': return '📚';
+            case 'competition': return '🎯';
+            case 'meeting': return '📝';
+            case 'social': return '🎉';
+            case 'project': return '💻';
+            default: return '📅';
         }
     };
+
+    const getActivityTypeLabel = (type) => {
+        switch (type) {
+            case 'workshop': return 'Workshop';
+            case 'competition': return 'Competition';
+            case 'meeting': return 'Meeting';
+            case 'social': return 'Social';
+            case 'project': return 'Project';
+            default: return 'Activity';
+        }
+    };
+
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'upcoming': return 'Sắp tới';
+            case 'ongoing': return 'Đang diễn ra';
+            case 'completed': return 'Đã hoàn thành';
+            case 'cancelled': return 'Đã hủy';
+            default: return 'Không xác định';
+        }
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const handleCreateSuccess = (newActivity) => {
+        console.log('✅ Activity created successfully:', newActivity);
+        // Reload activities from database
+        const loadActivities = async () => {
+            try {
+                const filters = {
+                    activity_type: filterType,
+                    status: filterStatus,
+                    search: searchTerm
+                };
+                
+                const { data, error } = await getActivities(filters);
+                
+                if (!error) {
+                    setActivities(data);
+                }
+            } catch (error) {
+                console.error('❌ Error reloading activities:', error);
+            }
+        };
+        
+        loadActivities();
+        setShowCreateModal(false);
+    };
+
+    const handleDeleteActivity = async (activityId) => {
+        try {
+            console.log('🗑️ Deleting activity:', activityId);
+            
+            const { error } = await deleteActivity(activityId);
+            
+            if (error) {
+                console.error('❌ Error deleting activity:', error);
+                alert('Không thể xóa sự kiện: ' + error.message);
+                return;
+            }
+            
+            // Reload activities from database
+            const filters = {
+                activity_type: filterType,
+                status: filterStatus,
+                search: searchTerm
+            };
+            
+            const { data, error: reloadError } = await getActivities(filters);
+            
+            if (!reloadError) {
+                setActivities(data);
+                console.log('✅ Activity deleted successfully');
+            }
+        } catch (error) {
+            console.error('❌ Error deleting activity:', error);
+            alert('Không thể xóa sự kiện');
+        }
+    };
+
+    const handleUpdateActivity = (updatedActivity) => {
+        console.log('✅ Activity updated successfully:', updatedActivity);
+        // Reload activities from database
+        const loadActivities = async () => {
+            try {
+                const filters = {
+                    activity_type: filterType,
+                    status: filterStatus,
+                    search: searchTerm
+                };
+                
+                const { data, error } = await getActivities(filters);
+                
+                if (!error) {
+                    setActivities(data);
+                }
+            } catch (error) {
+                console.error('❌ Error reloading activities:', error);
+            }
+        };
+        
+        loadActivities();
+    };
+
+    // Filtering is now handled by the API, so we can use activities directly
+    const filteredActivities = activities;
 
     if (loading) {
         return (
-            <div className="page-content">
+            <div className="activities-container">
                 <div className="loading">
-                    <div className="loading-spinner">⏳</div>
-                    <p>Đang tải danh sách hoạt động...</p>
+                    <div className="loading-spinner"></div>
+                    <p>Đang tải hoạt động...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="page-content">
-            <div className="page-header">
-                <h1>Quản lý hoạt động CLB</h1>
+        <div className="activities-container">
+            {/* Header */}
+            <div className="activities-header">
+                <div className="header-left">
+                    <h1>📅 Lịch sự kiện CLB</h1>
+                    <p>Xem và quản lý các sự kiện của CLB</p>
+                </div>
+                <div className="header-right">
+                    <button 
+                        className="create-activity-btn"
+                        onClick={() => setShowCreateModal(true)}
+                    >
+                        ➕ Tạo sự kiện
+                    </button>
+                </div>
             </div>
 
-            <div className="activities-actions">
-                <button 
-                    className="add-activity-btn"
-                    onClick={() => setShowAddModal(true)}
-                >
-                    ➕ Tạo hoạt động mới
-                </button>
-            </div>
-
+            {/* Filters */}
             <div className="activities-filters">
-                <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="filter-select"
-                >
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="upcoming">Sắp diễn ra</option>
-                    <option value="ongoing">Đang diễn ra</option>
-                    <option value="completed">Đã hoàn thành</option>
-                    <option value="cancelled">Đã hủy</option>
-                </select>
+                <div className="search-box">
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm sự kiện..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <span className="search-icon">🔍</span>
+                </div>
                 
-                <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="filter-select"
-                >
-                    <option value="all">Tất cả loại</option>
-                    <option value="Workshop">Workshop</option>
-                    <option value="Cuộc thi">Cuộc thi</option>
-                    <option value="Seminar">Seminar</option>
-                    <option value="Họp CLB">Họp CLB</option>
-                </select>
-            </div>
-
-            <div className="activities-stats">
-                <div className="stat-card">
-                    <span className="stat-number">{activities.length}</span>
-                    <span className="stat-label">Tổng hoạt động</span>
-                </div>
-                <div className="stat-card">
-                    <span className="stat-number">{activities.filter(a => a.status === 'upcoming').length}</span>
-                    <span className="stat-label">Sắp diễn ra</span>
-                </div>
-                <div className="stat-card">
-                    <span className="stat-number">{activities.filter(a => a.status === 'ongoing').length}</span>
-                    <span className="stat-label">Đang diễn ra</span>
-                </div>
-                <div className="stat-card">
-                    <span className="stat-number">{activities.filter(a => a.status === 'completed').length}</span>
-                    <span className="stat-label">Đã hoàn thành</span>
+                <div className="filter-buttons">
+                    <select 
+                        value={filterType} 
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="all">Tất cả loại</option>
+                        <option value="workshop">Workshop</option>
+                        <option value="competition">Competition</option>
+                        <option value="meeting">Meeting</option>
+                        <option value="social">Social</option>
+                        <option value="project">Project</option>
+                    </select>
+                    
+                    <select 
+                        value={filterStatus} 
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="upcoming">Sắp tới</option>
+                        <option value="ongoing">Đang diễn ra</option>
+                        <option value="completed">Đã hoàn thành</option>
+                        <option value="cancelled">Đã hủy</option>
+                    </select>
                 </div>
             </div>
 
-            <div className="activities-grid">
+            {/* Calendar View */}
+            <EventCalendar 
+                activities={activities}
+                onDateClick={(date) => {
+                    console.log('Date clicked:', date);
+                }}
+                onEventClick={(event) => {
+                    navigate(`/activities/${event.id}`);
+                }}
+            />
+
+            {/* Activities List */}
+            <div className="activities-section">
+                <h2 className="section-title">📋 Danh sách sự kiện</h2>
+                <div className="activities-grid">
                 {filteredActivities.map((activity) => (
                     <div key={activity.id} className="activity-card">
-                        <div className="activity-header">
-                            <div className="activity-type">
-                                <span className="type-icon">{getTypeIcon(activity.type)}</span>
-                                <span className="type-text">{activity.type}</span>
-                            </div>
-                            <div 
-                                className="activity-status"
-                                style={{ backgroundColor: getStatusColor(activity.status) }}
-                            >
-                                {getStatusText(activity.status)}
+                        <div className="activity-thumbnail">
+                            <img src={activity.thumbnail} alt={activity.title} />
+                            <div className="activity-type-badge">
+                                {getActivityTypeIcon(activity.activity_type)}
+                                {getActivityTypeLabel(activity.activity_type)}
                             </div>
                         </div>
                         
                         <div className="activity-content">
-                            <h3 className="activity-title">{activity.title}</h3>
+                            <div className="activity-header">
+                                <h3 className="activity-title">{activity.title}</h3>
+                                <span className={`status-badge status-${activity.status}`}>
+                                    {getStatusLabel(activity.status)}
+                                </span>
+                            </div>
+                            
                             <p className="activity-description">{activity.description}</p>
                             
-                            <div className="activity-details">
-                                <div className="detail-item">
-                                    <span className="detail-icon">📅</span>
-                                    <span className="detail-text">
-                                        {new Date(activity.date).toLocaleDateString('vi-VN')} lúc {activity.time}
-                                    </span>
+                            <div className="activity-meta">
+                                <div className="meta-item">
+                                    <span className="meta-icon">📅</span>
+                                    <span className="meta-text">{formatDate(activity.start_date)}</span>
                                 </div>
                                 
-                                <div className="detail-item">
-                                    <span className="detail-icon">📍</span>
-                                    <span className="detail-text">{activity.location}</span>
+                                <div className="meta-item">
+                                    <span className="meta-icon">🏢</span>
+                                    <span className="meta-text">{activity.location}</span>
                                 </div>
                                 
-                                <div className="detail-item">
-                                    <span className="detail-icon">👤</span>
-                                    <span className="detail-text">Tổ chức: {activity.organizer}</span>
+                                <div className="meta-item">
+                                    <span className="meta-icon">👥</span>
+                                    <span className="meta-text">{activity.current_participants}/{activity.max_participants} người</span>
                                 </div>
                                 
-                                <div className="detail-item">
-                                    <span className="detail-icon">👥</span>
-                                    <span className="detail-text">
-                                        {activity.currentParticipants}/{activity.maxParticipants} người tham gia
-                                    </span>
+                                <div className="meta-item">
+                                    <span className="meta-icon">👨‍🏫</span>
+                                    <span className="meta-text">{activity.organizer.name}</span>
                                 </div>
                             </div>
                             
-                            {activity.requirements && (
-                                <div className="activity-requirements">
-                                    <strong>Yêu cầu:</strong> {activity.requirements}
-                                </div>
-                            )}
-                        </div>
-                        
-                        <div className="activity-progress">
-                            <div className="progress-bar">
-                                <div 
-                                    className="progress-fill"
-                                    style={{ 
-                                        width: `${(activity.currentParticipants / activity.maxParticipants) * 100}%` 
-                                    }}
-                                ></div>
+                            <div className="activity-tags">
+                                {activity.tags && Array.isArray(activity.tags) ? activity.tags.map((tag, index) => (
+                                    <span key={index} className="tag">
+                                        #{tag}
+                                    </span>
+                                )) : null}
                             </div>
-                            <span className="progress-text">
-                                {Math.round((activity.currentParticipants / activity.maxParticipants) * 100)}% đã đăng ký
-                            </span>
                         </div>
                         
                         <div className="activity-actions">
-                            <button className="action-btn edit-btn">✏️ Chỉnh sửa</button>
-                            <button className="action-btn participants-btn">👥 Danh sách</button>
-                            <button className="action-btn delete-btn">🗑️ Xóa</button>
+                            <button 
+                                className="action-btn details-btn"
+                                onClick={() => navigate(`/activities/${activity.id}`)}
+                            >
+                                📝 Chi tiết
+                            </button>
+                            
+                            {activity.is_registered ? (
+                                <button className="action-btn registered-btn">
+                                    ✅ Đã đăng ký
+                                </button>
+                            ) : (
+                                <button className="action-btn register-btn">
+                                    ⏰ Đăng ký
+                                </button>
+                            )}
+
+                            <button 
+                                className="action-btn delete-btn"
+                                onClick={() => {
+                                    if (window.confirm('Bạn có chắc muốn xóa sự kiện này?')) {
+                                        handleDeleteActivity(activity.id);
+                                    }
+                                }}
+                                title="Xóa sự kiện"
+                            >
+                                🗑️ Xóa
+                            </button>
                         </div>
                     </div>
                 ))}
+
+                {filteredActivities.length === 0 && (
+                    <div className="no-activities">
+                        <div className="no-activities-icon">📅</div>
+                        <h3>Không có sự kiện nào</h3>
+                        <p>Không tìm thấy sự kiện phù hợp với bộ lọc của bạn</p>
+                    </div>
+                )}
+                </div>
             </div>
 
-            {filteredActivities.length === 0 && (
-                <div className="no-results">
-                    <p>Không tìm thấy hoạt động nào phù hợp</p>
-                </div>
+            {/* Create Activity Modal */}
+            {showCreateModal && (
+                <CreateActivity
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={handleCreateSuccess}
+                />
             )}
         </div>
     );

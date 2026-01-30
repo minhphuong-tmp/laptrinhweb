@@ -41,16 +41,16 @@ export const getUserNotifications = async (userId, page = 1) => {
 
         if (!testResponse.ok) {
             console.log('Notifications table does not exist or no access');
-            return getMockNotifications();
+            return [];
         }
 
         // Calculate offset for pagination
         const limit = 20;
         const offset = (page - 1) * limit;
 
-        // Try to get notifications with join
+        // Try to get notifications with join - using new fields: is_read, postId, commentId, type
         const response = await fetch(
-            `${API_URL}/notifications?receiverId=eq.${userId}&select=*,sender:senderId(id,name,image)&order=created_at.desc&limit=${limit}&offset=${offset}`,
+            `${API_URL}/notifications?receiverId=eq.${userId}&select=id,created_at,title,senderId,receiverId,is_read,postId,commentId,type,data,sender:senderId(id,name,image)&order=created_at.desc&limit=${limit}&offset=${offset}`,
             {
                 method: 'GET',
                 headers: {
@@ -62,18 +62,36 @@ export const getUserNotifications = async (userId, page = 1) => {
         );
 
         if (!response.ok) {
-            console.log('Error fetching notifications:', response.status);
-            return getMockNotifications();
+            console.error('Error fetching notifications:', response.status);
+            return [];
         }
 
         const data = await response.json();
-        // If no notifications, return mock data
-        if (data.length === 0) {
-            return getMockNotifications();
+        
+        // If no notifications, return empty array
+        if (!data || data.length === 0) {
+            return [];
         }
         
+        // Parse notification.data if it's a string (for backward compatibility)
+        const parsedNotifications = data.map(notification => {
+            if (typeof notification.data === 'string') {
+                try {
+                    notification.data = JSON.parse(notification.data);
+                } catch (e) {
+                    console.warn('Failed to parse notification.data:', e, notification.data);
+                    notification.data = {};
+                }
+            }
+            // Ensure is_read defaults to false if not set
+            if (notification.is_read === null || notification.is_read === undefined) {
+                notification.is_read = false;
+            }
+            return notification;
+        });
+        
         // Filter out self-notifications
-        const filteredNotifications = data.filter(notification => notification.senderId !== notification.receiverId);
+        let filteredNotifications = parsedNotifications.filter(notification => notification.senderId !== notification.receiverId);
         
         // If join didn't work, fetch sender data separately
         if (filteredNotifications.length > 0 && !filteredNotifications[0].sender) {
@@ -115,55 +133,11 @@ export const getUserNotifications = async (userId, page = 1) => {
         return filteredNotifications;
     } catch (error) {
         console.error('Error fetching notifications:', error);
-        // Return mock notifications when there's network error
-        return getMockNotifications();
+        // Return empty array instead of mock data
+        return [];
     }
 };
 
-// Mock notifications for when server is down or no internet
-const getMockNotifications = () => {
-    return [
-        {
-            id: 'mock-1',
-            title: 'like',
-            senderId: 'mock-user-1',
-            receiverId: 'current-user',
-            created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-            data: { is_read: false, postId: 'mock-post-1' },
-            sender: {
-                id: 'mock-user-1',
-                name: 'Nguyễn Văn A',
-                image: null
-            }
-        },
-        {
-            id: 'mock-2',
-            title: 'comment',
-            senderId: 'mock-user-2',
-            receiverId: 'current-user',
-            created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-            data: { is_read: false, postId: 'mock-post-2' },
-            sender: {
-                id: 'mock-user-2',
-                name: 'Trần Thị B',
-                image: null
-            }
-        },
-        {
-            id: 'mock-3',
-            title: 'like',
-            senderId: 'mock-user-3',
-            receiverId: 'current-user',
-            created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-            data: { is_read: true, postId: 'mock-post-3' },
-            sender: {
-                id: 'mock-user-3',
-                name: 'Lê Văn C',
-                image: null
-            }
-        }
-    ];
-};
 
 export const markNotificationAsRead = async (notificationId) => {
     try {
@@ -171,7 +145,7 @@ export const markNotificationAsRead = async (notificationId) => {
             method: 'PATCH',
             headers,
             body: JSON.stringify({
-                data: { is_read: true }
+                is_read: true
             })
         });
 
@@ -192,7 +166,7 @@ export const markAllNotificationsAsRead = async (userId) => {
             method: 'PATCH',
             headers,
             body: JSON.stringify({
-                data: { is_read: true }
+                is_read: true
             })
         });
 
@@ -209,10 +183,12 @@ export const markAllNotificationsAsRead = async (userId) => {
 
 export const getUnreadNotificationCount = async (userId) => {
     try {
+        console.log('🔍 [notificationService] Getting unread count for user:', userId);
         
-        // First try with data filter - corrected syntax
+        // Always use fallback method: get all notifications and filter in code
+        // This is more reliable than trying to filter with JSONB operators
         const response = await fetch(
-            `${API_URL}/notifications?receiverId=eq.${userId}&data->>is_read=is.false`,
+            `${API_URL}/notifications?receiverId=eq.${userId}`,
             {
                 method: 'GET',
                 headers: {
@@ -224,38 +200,48 @@ export const getUnreadNotificationCount = async (userId) => {
         );
 
         if (!response.ok) {
-            // Fallback: get all notifications and filter in code
-            const fallbackResponse = await fetch(
-                `${API_URL}/notifications?receiverId=eq.${userId}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'apikey': API_KEY,
-                        'Authorization': `Bearer ${API_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            if (!fallbackResponse.ok) {
-                throw new Error(`HTTP error! status: ${fallbackResponse.status}`);
-            }
-
-            const data = await fallbackResponse.json();
-            
-            // Filter unread notifications
-            const unreadCount = data.filter(notification => 
-                notification.senderId !== notification.receiverId && 
-                !notification.data?.is_read
-            ).length;
-            
-            return unreadCount;
+            console.error('❌ [notificationService] Failed to fetch notifications:', response.status);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        return data.length;
+        console.log('📊 [notificationService] Total notifications fetched:', data.length);
+        
+        if (data.length > 0) {
+            console.log('📊 [notificationService] Sample notification:', {
+                id: data[0].id,
+                senderId: data[0].senderId,
+                receiverId: data[0].receiverId,
+                data: data[0].data,
+                dataType: typeof data[0].data
+            });
+        }
+        
+        // Filter unread notifications - using is_read field directly
+        const unreadCount = data.filter(notification => {
+            // Skip self-notifications
+            if (notification.senderId === notification.receiverId) {
+                return false;
+            }
+            
+            // Use is_read field directly (defaults to false if null/undefined)
+            const isUnread = !notification.is_read;
+            
+            if (isUnread) {
+                console.log('📬 [notificationService] Found unread notification:', {
+                    id: notification.id,
+                    title: notification.title,
+                    is_read: notification.is_read
+                });
+            }
+            
+            return isUnread;
+        }).length;
+        
+        console.log('✅ [notificationService] Unread count:', unreadCount);
+        return unreadCount;
     } catch (error) {
-        console.error('Error fetching unread count:', error);
+        console.error('❌ [notificationService] Error fetching unread count:', error);
         return 0;
     }
 };
@@ -264,29 +250,31 @@ export const createLikeNotification = async (postId, postOwnerId, likerId, liker
     if (postOwnerId === likerId) return; // Don't notify self
     
     const notificationData = {
-        title: 'like',
+        title: 'Đã thích bài viết của bạn',
         senderId: likerId,
         receiverId: postOwnerId,
-        data: {
-            postId: postId,
-            is_read: false
-        }
+        type: 'like',
+        postId: postId,
+        commentId: null,
+        is_read: false,
+        data: {} // Keep for backward compatibility
     };
 
     return await createNotification(notificationData);
 };
 
-export const createCommentNotification = async (postId, postOwnerId, commenterId, commenterName) => {
+export const createCommentNotification = async (postId, postOwnerId, commenterId, commenterName, commentId = null) => {
     if (postOwnerId === commenterId) return; // Don't notify self
     
     const notificationData = {
-        title: 'comment',
+        title: 'Đã bình luận vào bài viết của bạn',
         senderId: commenterId,
         receiverId: postOwnerId,
-        data: {
-            postId: postId,
-            is_read: false
-        }
+        type: 'comment',
+        postId: postId,
+        commentId: commentId, // Lưu commentId để có thể scroll đến đúng comment
+        is_read: false,
+        data: {} // Keep for backward compatibility
     };
 
     return await createNotification(notificationData);

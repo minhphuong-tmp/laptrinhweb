@@ -47,9 +47,12 @@ export const uploadImage = async (file, userId) => {
     try {
         // Tạo tên file unique trong folder postImages
         const timestamp = Date.now();
-        const fileName = `postImages/${userId}/${timestamp}_${file.name}`;
+        const fileExtension = file.name.split('.').pop();
+        const fileName = `postImages/${timestamp}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
         
         console.log('📤 Uploading image to postImages folder:', fileName);
+        
+        // Không cần tạo folder riêng cho từng user nữa vì đã dùng cấu trúc đơn giản
         
         // Upload lên Supabase Storage sử dụng client
         let { data, error } = await supabase.storage

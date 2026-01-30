@@ -1,4 +1,4 @@
-import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
@@ -24,47 +24,66 @@ import Activities from './pages/Activities';
 import Documents from './pages/Documents';
 import Statistics from './pages/Statistics';
 import Announcements from './pages/Announcements';
-import Calendar from './pages/Calendar';
 import Leaderboard from './pages/Leaderboard';
-import MeetingNotes from './pages/MeetingNotes';
 import Finance from './pages/Finance';
 import Support from './pages/Support';
+import Curriculum from './pages/Curriculum';
+import GlobalCallListener from './components/GlobalCallListener';
+import { useSmoothScroll } from './hooks/useSmoothScroll';
+
+function AppContent() {
+    const location = useLocation();
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+    
+    // Tích hợp smooth scroll với Lenis
+    useSmoothScroll({
+        duration: 1.2,
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        smoothTouch: true,
+        touchMultiplier: 2
+    });
+
+    return (
+        <div className="App">
+            <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/" element={<Navigate to="/home" replace />} />
+                <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
+                <Route path="/todo" element={<ProtectedRoute><Todo /></ProtectedRoute>} />
+                <Route path="/notes" element={<Navigate to="/todo" replace />} />
+                <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                <Route path="/profile/:userId?" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/post/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
+                <Route path="/chat" element={<ProtectedRoute><ChatList /></ProtectedRoute>} />
+                <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+                <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
+                {/* CLB Tin học KMA routes */}
+                <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+                <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
+                <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+                <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
+                <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
+                <Route path="/curriculum" element={<ProtectedRoute><Curriculum /></ProtectedRoute>} />
+                <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+                <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+                <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+            </Routes>
+            {!isAuthPage && <RightSidebar />}
+            {!isAuthPage && <GlobalCallListener />}
+        </div>
+    );
+}
 
 function App() {
     return (
         <ErrorBoundary>
             <AuthProvider>
                 <Router>
-                    <div className="App">
-                        <Routes>
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/signup" element={<SignUp />} />
-                            <Route path="/" element={<Navigate to="/home" replace />} />
-                            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                            <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
-                            <Route path="/todo" element={<ProtectedRoute><Todo /></ProtectedRoute>} />
-                            <Route path="/notes" element={<Navigate to="/todo" replace />} />
-                            <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
-                            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-                            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                            <Route path="/post/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
-                            <Route path="/chat" element={<ProtectedRoute><ChatList /></ProtectedRoute>} />
-                            <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-                            <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
-                            {/* CLB Tin học KMA routes */}
-                            <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
-                            <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
-                            <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
-                            <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
-                            <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
-                            <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
-                            <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-                            <Route path="/meeting-notes" element={<ProtectedRoute><MeetingNotes /></ProtectedRoute>} />
-                            <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
-                            <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-                        </Routes>
-                        <RightSidebar />
-                    </div>
+                    <AppContent />
                 </Router>
             </AuthProvider>
         </ErrorBoundary>
@@ -92,7 +111,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
 
     // Các trang sử dụng AppLayout (có sidebar trái, phải và header)
-    const pagesWithAppLayout = ['/members', '/activities', '/documents', '/statistics', '/announcements', '/calendar', '/leaderboard', '/meeting-notes', '/finance', '/support'];
+    const pagesWithAppLayout = ['/members', '/activities', '/documents', '/statistics', '/announcements', '/curriculum', '/leaderboard', '/finance', '/support'];
     const currentPath = window.location.pathname;
     
     if (pagesWithAppLayout.includes(currentPath)) {

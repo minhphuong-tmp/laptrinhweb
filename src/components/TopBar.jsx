@@ -15,21 +15,37 @@ const TopBar = () => {
     const [showMessages, setShowMessages] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    // Load unread notification count
-    useEffect(() => {
-        const loadUnreadCount = async () => {
-            if (user?.id) {
-                try {
-                    const count = await getUnreadNotificationCount(user.id);
-                    setUnreadCount(count);
-                } catch (error) {
-                    console.error('Error loading unread count:', error);
-                }
+    // Load unread notification count function
+    const loadUnreadCount = async () => {
+        if (user?.id) {
+            try {
+                const count = await getUnreadNotificationCount(user.id);
+                setUnreadCount(count);
+            } catch (error) {
+                console.error('Error loading unread count:', error);
             }
-        };
+        }
+    };
 
-        loadUnreadCount();
-    }, [user]);
+    useEffect(() => {
+        if (user?.id) {
+            loadUnreadCount();
+            
+            // Poll for new notifications every 30 seconds
+            const interval = setInterval(() => {
+                loadUnreadCount();
+            }, 30000);
+            
+            return () => clearInterval(interval);
+        }
+    }, [user?.id]);
+
+    // Refresh count when opening notifications dropdown
+    useEffect(() => {
+        if (showNotifications && user?.id) {
+            loadUnreadCount();
+        }
+    }, [showNotifications, user?.id]);
 
     const handleSignOut = async () => {
         if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
@@ -66,22 +82,20 @@ const TopBar = () => {
                         <button 
                             className="topbar-btn"
                             onClick={() => setShowNotifications(!showNotifications)}
+                            title={`Thông báo (${unreadCount} chưa đọc)`}
                         >
                             🔔
                             {unreadCount > 0 && (
-                                <span className="notification-badge">{unreadCount}</span>
+                                <span className="notification-badge">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
                             )}
                         </button>
                         
                         <NotificationDropdown 
                             isOpen={showNotifications}
                             onClose={() => setShowNotifications(false)}
-                            onNotificationRead={() => {
-                                // Reload unread count when notification is read
-                                if (user?.id) {
-                                    getUnreadNotificationCount(user.id).then(setUnreadCount);
-                                }
-                            }}
+                            onNotificationRead={loadUnreadCount}
                         />
                     </div>
 

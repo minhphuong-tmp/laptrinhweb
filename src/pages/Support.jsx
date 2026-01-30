@@ -27,7 +27,7 @@ const Support = () => {
             {
                 id: 2,
                 name: 'Trần Thị B',
-                position: 'Phó CLB',
+                position: 'Phó Chủ Nhiệm',
                 email: 'tranthib@kma.edu.vn',
                 phone: '0123456790',
                 avatar: null,

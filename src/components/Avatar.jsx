@@ -42,7 +42,6 @@ const Avatar = ({
 
     useEffect(() => {
         const loadImageUrl = async () => {
-            console.log('🔍 Avatar loadImageUrl - src:', src, 'type:', typeof src);
             
             // Kiểm tra src có phải là string và không rỗng
             if (src && typeof src === 'string' && src.trim() !== '' && src !== 'null' && src !== 'undefined') {
@@ -81,7 +80,6 @@ const Avatar = ({
                     setLoading(false);
                 }
             } else {
-                console.log('⚠️ Avatar - Invalid src:', src, 'type:', typeof src);
                 setImageUrl(null);
                 setImageError(false);
             }

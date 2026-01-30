@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import GroupAvatar from './GroupAvatar';
+import CallModal from './CallModal';
 import { useAuth } from '../context/AuthContext';
 import { getConversationById, getMessages, markConversationAsRead, sendMessage } from '../services/chatService';
+import { subscribeToSignaling } from '../services/webrtcService';
 import './ChatPopup.css';
 
 const ChatPopup = ({ conversationId, onClose }) => {
@@ -14,12 +16,18 @@ const ChatPopup = ({ conversationId, onClose }) => {
     const [sending, setSending] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [hasLoadedMessages, setHasLoadedMessages] = useState(false);
+    const [showCallModal, setShowCallModal] = useState(false);
+    const [callType, setCallType] = useState(null); // 'voice' or 'video'
+    const [incomingCall, setIncomingCall] = useState(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const pollingRef = useRef(null);
+    const signalingUnsubscribeRef = useRef(null);
 
     useEffect(() => {
-        if (conversationId && user) {
+        console.log('🔍 ChatPopup useEffect triggered:', { conversationId, userId: user?.id });
+        if (conversationId && user?.id) {
+            console.log('✅ Loading conversation and messages for:', conversationId);
             // Reset state khi conversationId thay đổi
             setHasLoadedMessages(false);
             setMessages([]);
@@ -28,12 +36,93 @@ const ChatPopup = ({ conversationId, onClose }) => {
             loadConversation();
             loadMessages();
             setupPolling();
+            
+            // Setup incoming call listener
+            const unsubscribe = setupIncomingCallListener();
+            if (unsubscribe) {
+                signalingUnsubscribeRef.current = unsubscribe;
+            }
+            
             // Focus vào input khi mở
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 100);
+        } else {
+            console.warn('⚠️ ChatPopup: Missing conversationId or user:', { conversationId, userId: user?.id });
         }
-    }, [conversationId, user]);
+        
+        // Cleanup on unmount
+        return () => {
+            if (signalingUnsubscribeRef.current) {
+                signalingUnsubscribeRef.current();
+                signalingUnsubscribeRef.current = null;
+            }
+        };
+    }, [conversationId, user?.id]);
+
+    const setupIncomingCallListener = () => {
+        if (!user?.id || !conversationId) return null;
+
+        console.log('📞 Setting up incoming call listener for user:', user.id, 'conversation:', conversationId);
+        
+        const unsubscribe = subscribeToSignaling(user.id, (message) => {
+            console.log('📨 [ChatPopup] Received signaling message:', message);
+            
+            if (message.type === 'offer') {
+                console.log('📞 [ChatPopup] Incoming call offer received from:', message.sender_id);
+                
+                // Check if this is for current conversation
+                // Use a function to get otherUser to ensure we have latest conversation state
+                setConversation(currentConversation => {
+                    if (!currentConversation || currentConversation.type === 'group') {
+                        console.log('⚠️ [ChatPopup] No conversation or group chat, ignoring call');
+                        return currentConversation;
+                    }
+                    
+                    const otherUser = currentConversation.conversation_members?.find(
+                        member => member.user_id !== user.id
+                    );
+                    
+                    console.log('👤 [ChatPopup] Other user in conversation:', otherUser?.user_id, 'vs sender:', message.sender_id);
+                    
+                    if (otherUser && message.sender_id === otherUser.user_id) {
+                        console.log('✅ [ChatPopup] Incoming call matches current conversation');
+                        // Determine call type from offer data
+                        const offerData = typeof message.data === 'string' 
+                            ? JSON.parse(message.data) 
+                            : message.data;
+                        const hasVideo = offerData?.offer?.sdp?.includes('video') || 
+                                       offerData?.offer?.sdp?.includes('m=video');
+                        
+                        console.log('📹 [ChatPopup] Call type determined:', hasVideo ? 'video' : 'voice');
+                        
+                        // Use setTimeout to ensure state updates properly
+                        setTimeout(() => {
+                            setCallType(hasVideo ? 'video' : 'voice');
+                            setIncomingCall({
+                                senderId: message.sender_id,
+                                messageId: message.id
+                            });
+                            setShowCallModal(true);
+                            console.log('✅ [ChatPopup] CallModal opened for incoming call');
+                        }, 100);
+                    } else {
+                        console.log('⚠️ [ChatPopup] Incoming call from different user, ignoring');
+                    }
+                    
+                    return currentConversation;
+                });
+            } else if (message.type === 'hangup') {
+                console.log('📞 [ChatPopup] Received hangup signal');
+                // Close call modal if open
+                setShowCallModal(false);
+                setCallType(null);
+                setIncomingCall(null);
+            }
+        });
+
+        return unsubscribe;
+    };
 
     // Scroll xuống cuối khi mở ChatPopup để hiển thị tin nhắn cuối cùng
     useLayoutEffect(() => {
@@ -71,26 +160,38 @@ const ChatPopup = ({ conversationId, onClose }) => {
 
     const loadConversation = async () => {
         try {
+            console.log('📞 Loading conversation:', conversationId);
             const result = await getConversationById(conversationId);
+            console.log('📞 Conversation result:', result);
             if (result.success) {
                 setConversation(result.data);
+                console.log('✅ Conversation loaded:', result.data);
+            } else {
+                console.error('❌ Failed to load conversation:', result.msg);
             }
         } catch (error) {
-            console.error('Error loading conversation:', error);
+            console.error('❌ Error loading conversation:', error);
         }
     };
 
     const loadMessages = async () => {
         try {
+            console.log('💬 Loading messages for conversation:', conversationId);
             const result = await getMessages(conversationId);
+            console.log('💬 Messages result:', result);
             if (result.success) {
-                setMessages(result.data);
+                setMessages(result.data || []);
                 setHasLoadedMessages(true);
+                console.log('✅ Messages loaded:', result.data?.length || 0, 'messages');
                 // Đánh dấu đã đọc
-                await markConversationAsRead(conversationId, user.id);
+                if (user?.id) {
+                    await markConversationAsRead(conversationId, user.id);
+                }
+            } else {
+                console.error('❌ Failed to load messages:', result.msg);
             }
         } catch (error) {
-            console.error('Error loading messages:', error);
+            console.error('❌ Error loading messages:', error);
         } finally {
             setLoading(false);
         }
@@ -202,6 +303,13 @@ const ChatPopup = ({ conversationId, onClose }) => {
         );
     };
 
+    const getOtherUser = () => {
+        if (!conversation || conversation.type === 'group') return null;
+        return conversation.conversation_members?.find(
+            member => member.user_id !== user.id
+        );
+    };
+
     if (!conversationId) return null;
 
     return (
@@ -221,6 +329,34 @@ const ChatPopup = ({ conversationId, onClose }) => {
                         </div>
                     </div>
                     <div className="chat-popup-controls">
+                        <button 
+                            className="chat-popup-action-btn"
+                            onClick={() => {
+                                console.log('📞 [ChatPopup] Voice call button clicked');
+                                const otherUser = getOtherUser();
+                                console.log('📞 [ChatPopup] Other user:', otherUser);
+                                setCallType('voice');
+                                setShowCallModal(true);
+                                console.log('📞 [ChatPopup] CallModal state set to open');
+                            }}
+                            title="Gọi điện"
+                        >
+                            📞
+                        </button>
+                        <button 
+                            className="chat-popup-action-btn"
+                            onClick={() => {
+                                console.log('📹 [ChatPopup] Video call button clicked');
+                                const otherUser = getOtherUser();
+                                console.log('📹 [ChatPopup] Other user:', otherUser);
+                                setCallType('video');
+                                setShowCallModal(true);
+                                console.log('📹 [ChatPopup] CallModal state set to open');
+                            }}
+                            title="Gọi video"
+                        >
+                            📹
+                        </button>
                         <button 
                             className="chat-popup-minimize" 
                             onClick={() => setIsMinimized(!isMinimized)}
@@ -305,6 +441,38 @@ const ChatPopup = ({ conversationId, onClose }) => {
                     </>
                 )}
             </div>
+
+            {/* Call Modal */}
+            {showCallModal && callType && (() => {
+                const otherUser = getOtherUser();
+                if (!otherUser) {
+                    console.warn('⚠️ [ChatPopup] No other user found for call');
+                    return null;
+                }
+                
+                return (
+                    <CallModal
+                        key={`call-${conversationId}-${callType}`}
+                        isOpen={showCallModal}
+                        onClose={() => {
+                            console.log('🚪 [ChatPopup] CallModal onClose called, resetting state');
+                            setShowCallModal(false);
+                            setCallType(null);
+                            setIncomingCall(null);
+                            // Force a small delay to ensure cleanup completes
+                            setTimeout(() => {
+                                console.log('✅ [ChatPopup] State reset complete');
+                            }, 200);
+                        }}
+                        callType={callType}
+                        otherUserId={otherUser.user_id}
+                        otherUserName={otherUser.user?.name}
+                        otherUserImage={otherUser.user?.image}
+                        conversationId={conversationId}
+                        isIncoming={!!incomingCall}
+                    />
+                );
+            })()}
         </div>
     );
 };

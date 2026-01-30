@@ -26,8 +26,8 @@
     min-height: calc(100vh - 60px); /* Subtract TopBar height */
     max-width: 100%;
     overflow-x: auto;
-    overflow-y: auto;
-    max-height: calc(100vh - 60px);
+    overflow-y: visible; /* Allow content to extend beyond viewport */
+    max-height: none; /* Remove height restriction */
     display: flex;
     justify-content: center; /* center post/feed area */
 }

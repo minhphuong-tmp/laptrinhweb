@@ -10,11 +10,56 @@
 
 .page-header {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: space-between;
+    align-items: flex-start;
     padding: 20px;
     background: white;
     border-bottom: 1px solid #e4e6ea;
+    gap: 20px;
+}
+
+.header-left {
+    flex: 1;
+    text-align: center;
+}
+
+.header-right {
+    flex-shrink: 0;
+}
+
+.page-header h1 {
+    margin: 0;
+    color: #1c1e21;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.upload-btn {
+    background: #1877f2;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 0;
+}
+
+.upload-btn:hover {
+    background: #166fe5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
+}
+
+.upload-btn:active {
+    transform: translateY(0);
 }
 
 
@@ -204,17 +249,7 @@
     gap: 16px;
 }
 
-.document-icon {
-    font-size: 48px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
+/* DocumentIcon component styles are in DocumentIcon.css */
 
 .document-info {
     flex: 1;
@@ -320,6 +355,15 @@
     background: #ffe0b2;
 }
 
+.test-btn {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.test-btn:hover {
+    background: #e1bee7;
+}
+
 .no-results {
     text-align: center;
     padding: 60px;
@@ -389,13 +433,21 @@
 
 @media (max-width: 768px) {
     .page-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    background: white;
-    border-bottom: 1px solid #e4e6ea;
-}
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .header-left,
+    .header-right {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .upload-btn {
+        width: 100%;
+        max-width: 200px;
+    }
     
     .page-header h1 {
         font-size: 20px;

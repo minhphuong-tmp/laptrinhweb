@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { getSupabaseFileUrl } from '../services/imageService';
 import { createPostLike, removePostLike } from '../services/postService';
+import { scrollReveal, cardHover, cardTap } from '../utils/animations';
 import Avatar from './Avatar';
 import './PostCard.css';
 
@@ -88,7 +90,14 @@ const PostCard = ({
     const liked = likes.some(like => like.userId === currentUser?.id);
 
     return (
-        <div className={`post-card ${hasShadow ? 'post-card-shadow' : ''}`}>
+        <motion.div
+            className={`post-card ${hasShadow ? 'post-card-shadow' : ''}`}
+            data-post-id={item?.id}
+            id={`post-${item?.id}`}
+            {...scrollReveal}
+            whileHover={cardHover}
+            whileTap={cardTap}
+        >
             <div className="post-header">
                 <div className="post-user-info">
                     <Avatar
@@ -145,10 +154,12 @@ const PostCard = ({
                 {item?.file && (
                     <>
                         {item.file.includes('postImages') || item.file.includes('.png') || item.file.includes('.jpg') || item.file.includes('.jpeg') ? (
-                            <img
+                            <motion.img
                                 src={item.file}
                                 alt="Post image"
                                 className="post-media"
+                                whileHover={{ scale: 1.02 }}
+                                transition={{ duration: 0.3 }}
                                 onError={(e) => {
                                     e.target.style.display = 'none';
                                 }}
@@ -178,22 +189,26 @@ const PostCard = ({
 
             <div className="post-footer">
                 <div className="post-footer-btn">
-                    <button
+                    <motion.button
                         className={`post-action-btn ${liked ? 'liked' : ''}`}
                         onClick={onLike}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                     >
                         {liked ? '❤️' : '🤍'}
-                    </button>
+                    </motion.button>
                     <span className="post-count">{likes.length}</span>
                 </div>
 
                 <div className="post-footer-btn">
-                    <button
+                    <motion.button
                         className="post-action-btn"
                         onClick={openPostDetails}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                     >
                         💬
-                    </button>
+                    </motion.button>
                     <span className="post-count">
                         {item?.comments?.[0]?.count || item?.comments?.length || 0}
                     </span>
@@ -203,16 +218,18 @@ const PostCard = ({
                     {loading ? (
                         <div className="post-loading">⏳</div>
                     ) : (
-                        <button
+                        <motion.button
                             className="post-action-btn"
                             onClick={onShare}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
                         >
                             📤
-                        </button>
+                        </motion.button>
                     )}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

@@ -327,7 +327,6 @@ export const uploadAvatar = async (file, userId) => {
 // Test function để kiểm tra bucket upload
 export const testUploadBucket = async () => {
     try {
-        console.log('🔍 Testing upload bucket...');
 
         // Test list files trong upload bucket
         const { data: files, error: filesError } = await supabase.storage
@@ -369,7 +368,6 @@ export const testUploadBucket = async () => {
 // Test function để load ảnh cụ thể
 export const testLoadImage = async (imagePath) => {
     try {
-        console.log(`🔍 Testing load image: ${imagePath}`);
 
         // Xử lý path để tránh duplicate (giống getUserImageSrc)
         let cleanPath = imagePath;

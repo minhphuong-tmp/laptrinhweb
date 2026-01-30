@@ -20,7 +20,6 @@ const ChatList = () => {
 
     const loadConversations = async () => {
         try {
-            console.log('🔍 Loading conversations for user:', user.id);
             const result = await getConversations(user.id);
             console.log('📊 Conversations result:', result);
             if (result.success) {
