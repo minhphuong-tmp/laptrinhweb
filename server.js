@@ -61,37 +61,39 @@ app.post('/api/crawl-grades', async (req, res) => {
         await page.type('input[type="password"]', password);
         await page.keyboard.press('Enter');
 
-        // STEP C: KMSI (Force Click NO/YES via DOM)
+        // STEP C: KMSI (Force Click NO with Retry Loop)
         console.log('Waiting for "Stay signed in"...');
         try {
-            // Wait for ANY indicator of KMSI
+            // Wait quickly for any relevant element
             await page.waitForFunction(() => {
-                return document.getElementById('idBtn_Back') || document.getElementById('idSIButton9');
-            }, { timeout: 10000 });
+                return document.getElementById('idBtn_Back') || document.getElementById('idSIButton9') || document.querySelector('input[type="submit"]');
+            }, { timeout: 8000 });
 
-            await sleep(500); // stable wait
+            // Retry Loop: Click up to 5 times if needed (solving the "2nd try" issue)
+            for (let i = 0; i < 5; i++) {
+                if (!page.url().includes('login.microsoft') && !page.url().includes('login.live')) break; // Already moved on
 
-            console.log('KMSI detected. Force clicking "No" via DOM...');
-            await page.evaluate(() => {
-                // Prioritize NO, then YES
-                const btn = document.getElementById('idBtn_Back') || document.getElementById('idSIButton9');
-                if (btn) btn.click();
-            });
+                console.log(`KMSI Click Attempt ${i + 1}...`);
+                await page.evaluate(() => {
+                    const btn = document.getElementById('idBtn_Back') || document.getElementById('idSIButton9') || document.querySelector('input[type="submit"]');
+                    if (btn) btn.click();
+                });
+                await sleep(800); // Wait a bit for reaction
+            }
 
         } catch (e) {
-            console.log('KMSI screen skipped or not found (or ID changed).');
+            console.log('KMSI screen skipped or not found.');
         }
 
         // 3. Wait for Redirect to School Domain
         console.log('Waiting for redirect to school domain...');
         try {
-            // Wait for URL to contain 'actvn' (meaning we are back at school)
             await page.waitForFunction(
                 () => window.location.href.includes('actvn'),
                 { timeout: 30000 }
             );
-            console.log('Returned to school domain. Letting session settle (3s)...');
-            await sleep(3000); // CRITICAL: Wait for cookies/session to save before navigating
+            console.log('Returned to school domain.');
+            // Removed strict sleep for speed - User requested max speed
         } catch (e) {
             console.log('Redirect check timeout. Forcing navigation anyway...');
         }
@@ -105,33 +107,23 @@ app.post('/api/crawl-grades', async (req, res) => {
 
         // 4. Extract Data
         console.log('Extracting data...');
-        // Wait for table to appear
+        // FAST Extraction: Don't wait for ID, go straight to Generic Table
         try {
-            // Try specific selector first
-            await page.waitForSelector('#div-ket-qua-hoc-tap .table', { timeout: 10000 });
+            // Wait for ANY table immediately
+            await page.waitForSelector('table', { timeout: 15000 });
         } catch (e) {
-            console.log('Specific selector timeout. Checking for ANY table...');
-            try {
-                // Fallback: Check for generic table
-                await page.waitForSelector('table', { timeout: 10000 });
-                console.log('Found generic table, proceeding...');
-            } catch (ex) {
-                console.log('No generic table found. Dumping HTML for debug...');
+            console.log('Table selector timeout! Dumping HTML...');
+            const html = await page.content();
+            fs.writeFileSync('debug_grades.html', html);
 
-                const fs = require('fs');
-                const html = await page.content();
-                fs.writeFileSync('debug_grades.html', html);
-                console.log('Saved debug_grades.html');
-
-                if (html.includes('alert-warning') || html.includes('alert-danger')) {
-                    throw new Error('Đăng nhập không thành công (Trang web báo lỗi / Yêu cầu đăng nhập lại).');
-                }
-                if (html.includes('Đăng nhập')) {
-                    throw new Error('Hệ thống chưa nhận diện phiên đăng nhập. (Vui lòng thử lại).');
-                }
-
-                throw new Error('Timeout: Không tìm thấy bảng điểm. Đã lưu file debug_grades.html.');
+            if (html.includes('alert-warning') || html.includes('alert-danger')) {
+                throw new Error('Đăng nhập không thành công (Trang web báo lỗi / Yêu cầu đăng nhập lại).');
             }
+            if (html.includes('Đăng nhập')) {
+                throw new Error('Hệ thống chưa nhận diện phiên đăng nhập. (Có thể do mạng quá chậm, hãy thử lại).');
+            }
+
+            throw new Error('Timeout: Không tìm thấy bảng điểm. Đã lưu file debug_grades.html.');
         }
 
         const grades = await page.evaluate(() => {
