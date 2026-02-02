@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './Curriculum.css';
+import studentGrades from '../data/student_grades.json';
 
 const Curriculum = () => {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [selectedMajor, setSelectedMajor] = useState('cntt'); // 'cntt', 'attm', 'dtvt' - bắt đầu với CNTT
-    const [activeTab, setActiveTab] = useState('objectives'); // 'objectives', 'curriculum', 'conditions'
+    const [activeTab, setActiveTab] = useState('objectives'); // 'objectives', 'curriculum', 'conditions', 'progress'
 
     // Mock data - Chương trình học theo ngành
     const [curriculumData, setCurriculumData] = useState({
@@ -511,28 +512,159 @@ const Curriculum = () => {
                 schedule: 'Thứ 6, Chủ nhật - 19:00-21:00'
             }
         ],
-        roadmap: [
-            {
-                semester: 'Học kỳ 1',
-                courses: ['Lập trình Cơ bản', 'Database và SQL'],
-                duration: '3 tháng'
-            },
-            {
-                semester: 'Học kỳ 2',
-                courses: ['Lập trình Hướng đối tượng', 'Web Development (Phần 1)'],
-                duration: '3 tháng'
-            },
-            {
-                semester: 'Học kỳ 3',
-                courses: ['Web Development (Phần 2)', 'Cấu trúc Dữ liệu và Giải thuật'],
-                duration: '3 tháng'
-            },
-            {
-                semester: 'Học kỳ 4',
-                courses: ['Mobile App Development', 'Dự án Capstone'],
-                duration: '3 tháng'
-            }
-        ],
+        roadmap: {
+            cntt: [
+                {
+                    semester: 'Học kỳ 1',
+                    duration: 'Tổng số tín chỉ: 20',
+                    courses: [
+                        'Giải tích 1 (3 tín chỉ)',
+                        'Đại số tuyến tính (3 tín chỉ)',
+                        'Tin học đại cương (2 tín chỉ)',
+                        'Triết học Mác – Lê nin (3 tín chỉ)',
+                        'Giáo dục quốc phòng an ninh (8 tín chỉ)',
+                        'Giáo dục thể chất 1 (1 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 2',
+                    duration: 'Tổng số tín chỉ: 18',
+                    courses: [
+                        'Vật lý đại cương 1 (3 tín chỉ)',
+                        'Giải tích 2 (3 tín chỉ)',
+                        'Lập trình căn bản (3 tín chỉ)',
+                        'Kinh tế chính trị Mác – Lênin (2 tín chỉ)',
+                        'Môn tự chọn (2 tín chỉ)',
+                        'Lịch sử Đảng Cộng sản Việt Nam (2 tín chỉ)',
+                        'Giáo dục thể chất 2 (1 tín chỉ)',
+                        'Kỹ năng mềm (2 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 3',
+                    duration: 'Tổng số tín chỉ: 18',
+                    courses: [
+                        'Vật lý đại cương 2 (3 tín chỉ)',
+                        'Thực hành vật lý đại cương 1 & 2 (2 tín chỉ)',
+                        'Tiếng Anh 1 (3 tín chỉ)',
+                        'Xác suất thống kê (2 tín chỉ)',
+                        'Phương pháp tính (2 tín chỉ)',
+                        'Mạng máy tính (3 tín chỉ)',
+                        'Tư tưởng Hồ Chí Minh (2 tín chỉ)',
+                        'Giáo dục thể chất 3 (1 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 4',
+                    duration: 'Tổng số tín chỉ: 19',
+                    courses: [
+                        'Tiếng Anh 2 (3 tín chỉ)',
+                        'Toán rời rạc (2 tín chỉ)',
+                        'Quản trị mạng máy tính (2 tín chỉ)',
+                        'Otomat và ngôn ngữ hình thức (2 tín chỉ)',
+                        'Chương trình dịch (2 tín chỉ)',
+                        'Lý thuyết cơ sở dữ liệu (2 tín chỉ)',
+                        'Điện tử tương tự và điện tử số (3 tín chỉ)',
+                        'Giáo dục thể chất 4 (1 tín chỉ)',
+                        'Chủ Nghĩa xã hội Khoa học (2 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 5',
+                    duration: 'Tổng số tín chỉ: 19',
+                    courses: [
+                        'Tiếng Anh 3 (4 tín chỉ)',
+                        'Lập trình hướng đối tượng (2 tín chỉ)',
+                        'Phát triển phần mềm ứng dụng (2 tín chỉ)',
+                        'Cấu trúc dữ liệu và giải thuật (2 tín chỉ)',
+                        'Lý thuyết độ phức tạp tính toán (2 tín chỉ)',
+                        'Hệ quản trị cơ sở dữ liệu (2 tín chỉ)',
+                        'Kỹ thuật vi xử lý (2 tín chỉ)',
+                        'Cơ sở lý thuyết truyền tin (2 tín chỉ)',
+                        'Giáo dục thể chất 5 (1 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 6',
+                    duration: 'Tổng số tín chỉ: 22',
+                    courses: [
+                        'Tiếng Anh chuyên ngành (4 tín chỉ)',
+                        'Kiến trúc máy tính (2 tín chỉ)',
+                        'Nguyên lý hệ điều hành (2 tín chỉ)',
+                        'Phát triển ứng dụng web (2 tín chỉ)',
+                        'Công nghệ phần mềm (2 tín chỉ)',
+                        'Phân tích, thiết kế hệ thống thông tin (2 tín chỉ)',
+                        'Xử lý tín hiệu số (2 tín chỉ)',
+                        'Kỹ thuật truyền số liệu (2 tín chỉ)',
+                        'Hệ thống viễn thông (2 tín chỉ)',
+                        'Hệ thống thông tin di động (2 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 7',
+                    duration: 'Tổng số tín chỉ: 23',
+                    courses: [
+                        'Thiết kế hệ thống nhúng (3 tín chỉ)',
+                        'Công nghệ phần mềm nhúng (2 tín chỉ)',
+                        'Hệ điều hành nhúng thời gian thực (3 tín chỉ)',
+                        'Kiểm thử phần mềm nhúng (2 tín chỉ)',
+                        'Cơ sở an toàn và bảo mật thông tin (3 tín chỉ)',
+                        'Linux và phần mềm nguồn mở (2 tín chỉ)',
+                        'Lập trình hợp ngữ (3 tín chỉ)',
+                        'Quản trị dự án phần mềm (2 tín chỉ)',
+                        'Thực tập cơ sở chuyên ngành (3 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 8',
+                    duration: 'Tổng số tín chỉ: 20',
+                    courses: [
+                        'Lập trình nhân Linux (4 tín chỉ)',
+                        'Lập trình driver (4 tín chỉ)',
+                        'Lập trình ARM cơ bản (3 tín chỉ)',
+                        'Lập trình hệ thống nhúng Linux (3 tín chỉ)',
+                        'Lập trình Android cơ bản (3 tín chỉ)',
+                        'Phát triển phần mềm trong thẻ thông minh (3 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 9',
+                    duration: 'Tổng số tín chỉ: 24',
+                    courses: [
+                        'Lập trình ARM nâng cao (3 tín chỉ)',
+                        'Thị giác máy tính trên nền nhúng (3 tín chỉ)',
+                        'An toàn và bảo mật trong hệ thống nhúng (3 tín chỉ)',
+                        'Tối ưu phần mềm nhúng (3 tín chỉ)',
+                        'Lập trình Android nâng cao (3 tín chỉ)',
+                        'Phát triển game trên Android (3 tín chỉ)',
+                        'An toàn và bảo mật trong phát triển phần mềm di động (3 tín chỉ)',
+                        'Tối ưu phần mềm di động (3 tín chỉ)'
+                    ]
+                },
+                {
+                    semester: 'Học kỳ 10',
+                    duration: 'Tổng số tín chỉ: 11',
+                    courses: [
+                        'Thực tập tốt nghiệp (3 tín chỉ)',
+                        'Đồ án tốt nghiệp (8 tín chỉ)'
+                    ]
+                }
+            ],
+            attm: [
+                {
+                    semester: 'Học kỳ 1',
+                    courses: ['Lập trình Cơ bản', 'Đại số tuyến tính'],
+                    duration: 'Đang cập nhật'
+                }
+            ],
+            dtvt: [
+                {
+                    semester: 'Học kỳ 1',
+                    courses: ['Mạch điện tử', 'Giải tích 1'],
+                    duration: 'Đang cập nhật'
+                }
+            ]
+        },
         conditions: {
             requirements: [
                 'Là sinh viên đang học tại Học viện Kỹ thuật Mật mã',
@@ -659,13 +791,19 @@ const Curriculum = () => {
                     >
                         Điều kiện & Cơ hội
                     </button>
+                    <button
+                        className={`curriculum-tab ${activeTab === 'progress' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('progress')}
+                    >
+                        Tiến độ học tập
+                    </button>
                 </div>
 
                 {/* Tab Content */}
                 {activeTab === 'objectives' && (
                     <div className="curriculum-section">
                         <h2 className="section-title">Mục tiêu đào tạo</h2>
-                        
+
                         {/* Mục tiêu chung */}
                         <div className="objectives-section">
                             <h3 className="subsection-title">Mục tiêu chung</h3>
@@ -713,48 +851,48 @@ const Curriculum = () => {
 
                         <div className="courses-grid">
                             {filteredCourses.map((course) => (
-                            <div key={course.id} className="course-card">
-                                <div className="course-header">
-                                    <div className={`course-level-badge level-${course.level.toLowerCase().replace(/\s+/g, '-')}`}>
-                                        {course.level}
+                                <div key={course.id} className="course-card">
+                                    <div className="course-header">
+                                        <div className={`course-level-badge level-${course.level.toLowerCase().replace(/\s+/g, '-')}`}>
+                                            {course.level}
+                                        </div>
+                                        <h3 className="course-title">{course.title}</h3>
                                     </div>
-                                    <h3 className="course-title">{course.title}</h3>
+                                    <p className="course-description">{course.description}</p>
+                                    <div className="course-info">
+                                        <div className="info-item">
+                                            <span className="info-icon">⏱️</span>
+                                            <span className="info-text">{course.duration}</span>
+                                        </div>
+                                        <div className="info-item">
+                                            <span className="info-icon">👨‍🏫</span>
+                                            <span className="info-text">{course.instructor}</span>
+                                        </div>
+                                        <div className="info-item">
+                                            <span className="info-icon">📅</span>
+                                            <span className="info-text">{course.schedule}</span>
+                                        </div>
+                                    </div>
+                                    <div className="course-topics">
+                                        <h4 className="topics-title">Nội dung học:</h4>
+                                        <ul className="topics-list">
+                                            {course.topics.map((topic, index) => (
+                                                <li key={index} className="topic-item">
+                                                    <span className="topic-icon">✓</span>
+                                                    {topic}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
                                 </div>
-                                <p className="course-description">{course.description}</p>
-                                <div className="course-info">
-                                    <div className="info-item">
-                                        <span className="info-icon">⏱️</span>
-                                        <span className="info-text">{course.duration}</span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="info-icon">👨‍🏫</span>
-                                        <span className="info-text">{course.instructor}</span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="info-icon">📅</span>
-                                        <span className="info-text">{course.schedule}</span>
-                                    </div>
-                                </div>
-                                <div className="course-topics">
-                                    <h4 className="topics-title">Nội dung học:</h4>
-                                    <ul className="topics-list">
-                                        {course.topics.map((topic, index) => (
-                                            <li key={index} className="topic-item">
-                                                <span className="topic-icon">✓</span>
-                                                {topic}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
                         </div>
 
                         {/* Roadmap Section */}
                         <div className="roadmap-section">
                             <h2 className="section-title">Lộ trình học tập</h2>
                             <div className="roadmap-container">
-                                {curriculumData.roadmap.map((semester, index) => (
+                                {(curriculumData.roadmap[selectedMajor] || []).map((semester, index) => (
                                     <div key={index} className="roadmap-item">
                                         <div className="roadmap-timeline">
                                             <div className="timeline-dot"></div>
@@ -786,7 +924,7 @@ const Curriculum = () => {
                 {activeTab === 'conditions' && (
                     <div className="curriculum-section">
                         <h2 className="section-title">Điều kiện & Cơ hội</h2>
-                        
+
                         {/* Điều kiện tham gia */}
                         <div className="conditions-section">
                             <h3 className="subsection-title">Điều kiện tham gia</h3>
@@ -822,6 +960,94 @@ const Curriculum = () => {
                     </div>
                 )}
 
+                {activeTab === 'progress' && (
+                    <div className="curriculum-section">
+                        <h2 className="section-title">Tiến độ học tập (Bảng điểm)</h2>
+
+                        <div className="progress-stats">
+                            {/* Calculates Stats */}
+                            {(() => {
+                                const totalSubjects = (currentMajor.roadmap || []).reduce((acc, sem) => acc + sem.courses.length, 0);
+                                const completedSubjects = studentGrades.length;
+                                const avgScore = (studentGrades.reduce((sum, g) => sum + (g.scores?.tk || 0), 0) / completedSubjects).toFixed(2);
+                                return (
+                                    <div className="stats-row">
+                                        <div className="stat-box">
+                                            <div className="stat-val">{completedSubjects}/{totalSubjects}</div>
+                                            <div className="stat-lbl">Môn đã học</div>
+                                        </div>
+                                        <div className="stat-box">
+                                            <div className="stat-val">{avgScore}</div>
+                                            <div className="stat-lbl">Điểm trung bình (TK)</div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        <div className="progress-roadmap">
+                            {(curriculumData.roadmap[selectedMajor] || []).map((semester, semIndex) => (
+                                <div key={semIndex} className="semester-block">
+                                    <h3 className="semester-title">{semester.semester} <span className="semester-credits">({semester.duration})</span></h3>
+                                    <div className="semester-table-wrapper">
+                                        <table className="grades-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Môn học</th>
+                                                    <th>Tín chỉ</th>
+                                                    <th>GK(TP1)</th>
+                                                    <th>CC(TP2)</th>
+                                                    <th>Điểm CK</th>
+                                                    <th>Điểm TK</th>
+                                                    <th>Điểm chữ</th>
+                                                    <th>Kỳ hiện tại</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {semester.courses.map((courseStr, cIndex) => {
+                                                    // Parse "Subject Name (credits)"
+                                                    const match = courseStr.match(/^(.*?)\s*\((\d+)\s*tín chỉ\)$/);
+                                                    const subjectName = match ? match[1] : courseStr;
+                                                    const credits = match ? match[2] : '?';
+
+                                                    // Find grade
+                                                    const grade = studentGrades.find(g => g.subject.toLowerCase().trim() === subjectName.toLowerCase().trim());
+                                                    const isCompleted = !!grade;
+
+                                                    // Status helper
+                                                    const isFail = grade?.scores?.letter === 'F' || grade?.note === 'Không đạt';
+                                                    const statusClass = isCompleted ? (isFail ? 'status-fail' : 'status-pass') : 'status-pending';
+
+                                                    return (
+                                                        <tr key={cIndex} className={`grade-row ${statusClass}`}>
+                                                            <td className="col-subject">{subjectName}</td>
+                                                            <td className="col-credits">{credits}</td>
+                                                            <td className="col-score">{grade?.scores?.tp1 !== undefined ? grade.scores.tp1.toFixed(2) : '-'}</td>
+                                                            <td className="col-score">{grade?.scores?.tp2 !== undefined ? grade.scores.tp2.toFixed(2) : '-'}</td>
+                                                            <td className="col-score">{grade?.scores?.ck !== undefined ? grade.scores.ck.toFixed(2) : '-'}</td>
+                                                            <td className="col-score font-bold">{grade?.scores?.tk !== undefined ? grade.scores.tk.toFixed(2) : '-'}</td>
+                                                            <td className="col-letter">
+                                                                <span className={`letter-badge ${grade?.scores?.letter?.replace('+', '-plus')}`}>
+                                                                    {grade?.scores?.letter || '-'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="col-term">
+                                                                {grade?.isCurrentSemester ? (
+                                                                    <span className="status-badge status-pending">Kỳ này</span>
+                                                                ) : '-'}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* CTA Section */}
                 <div className="curriculum-cta">
                     <h2 className="cta-title">Sẵn sàng bắt đầu hành trình học tập?</h2>
@@ -838,4 +1064,3 @@ const Curriculum = () => {
 };
 
 export default Curriculum;
-

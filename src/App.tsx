@@ -25,16 +25,15 @@ import Documents from './pages/Documents';
 import Statistics from './pages/Statistics';
 import Announcements from './pages/Announcements';
 import Leaderboard from './pages/Leaderboard';
-import Finance from './pages/Finance';
-import Support from './pages/Support';
 import Curriculum from './pages/Curriculum';
+import GradesLogin from './pages/GradesLogin';
 import GlobalCallListener from './components/GlobalCallListener';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 
 function AppContent() {
     const location = useLocation();
     const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
-    
+
     // Tích hợp smooth scroll với Lenis
     useSmoothScroll({
         duration: 1.2,
@@ -69,9 +68,9 @@ function AppContent() {
                 <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
                 <Route path="/curriculum" element={<ProtectedRoute><Curriculum /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-                <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
-                <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+                <Route path="/grades" element={<ProtectedRoute><GradesLogin /></ProtectedRoute>} />
             </Routes>
+
             {!isAuthPage && <RightSidebar />}
             {!isAuthPage && <GlobalCallListener />}
         </div>
@@ -111,9 +110,9 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
 
     // Các trang sử dụng AppLayout (có sidebar trái, phải và header)
-    const pagesWithAppLayout = ['/members', '/activities', '/documents', '/statistics', '/announcements', '/curriculum', '/leaderboard', '/finance', '/support'];
+    const pagesWithAppLayout = ['/members', '/activities', '/documents', '/statistics', '/announcements', '/curriculum', '/leaderboard', '/grades'];
     const currentPath = window.location.pathname;
-    
+
     if (pagesWithAppLayout.includes(currentPath)) {
         return <AppLayout>{children}</AppLayout>;
     }

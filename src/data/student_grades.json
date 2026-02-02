@@ -1,0 +1,665 @@
+[
+    {
+        "subject": "Kỹ năng mềm",
+        "credits": 2,
+        "scores": {
+            "tp1": 9.00,
+            "tp2": 10.00,
+            "ck": 6.00,
+            "tk": 7.00,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Tin học đại cương",
+        "credits": 2,
+        "scores": {
+            "tp1": 9.50,
+            "tp2": 10.00,
+            "ck": 8.00,
+            "tk": 8.50,
+            "letter": "A"
+        }
+    },
+    {
+        "subject": "Toán cao cấp A1",
+        "credits": 3,
+        "scores": {
+            "tp1": 10.00,
+            "tp2": 8.00,
+            "ck": 6.90,
+            "tk": 7.70,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Giáo dục thể chất 1",
+        "credits": 1,
+        "scores": {
+            "tp1": 6.00,
+            "tp2": 6.00,
+            "ck": 5.00,
+            "tk": 5.30,
+            "letter": "D+"
+        }
+    },
+    {
+        "subject": "Lập trình căn bản",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 10.00,
+            "ck": 9.00,
+            "tk": 8.90,
+            "letter": "A"
+        }
+    },
+    {
+        "subject": "Toán cao cấp A3",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.50,
+            "tp2": 8.00,
+            "ck": 6.00,
+            "tk": 6.70,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Triết học Mác - Lênin",
+        "credits": 3,
+        "scores": {
+            "tp1": 9.00,
+            "tp2": 8.00,
+            "ck": 8.20,
+            "tk": 8.40,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Vật lý đại cương A1",
+        "credits": 3,
+        "scores": {
+            "tp1": 7.00,
+            "tp2": 9.00,
+            "ck": 6.30,
+            "tk": 6.70,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Chủ nghĩa xã hội khoa học",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 9.00,
+            "ck": 7.50,
+            "tk": 7.70,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Giáo dục thể chất 2",
+        "credits": 1,
+        "scores": {
+            "tp1": 7.00,
+            "tp2": 5.00,
+            "ck": 2.00,
+            "tk": 3.30,
+            "letter": "F"
+        },
+        "note": "Không đạt"
+    },
+    {
+        "subject": "Kinh tế chính trị Mác - Lênin",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 9.00,
+            "ck": 7.00,
+            "tk": 7.40,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Toán cao cấp A2",
+        "credits": 3,
+        "scores": {
+            "tp1": 9.00,
+            "tp2": 9.00,
+            "ck": 5.50,
+            "tk": 6.60,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Công nghệ mạng máy tính",
+        "credits": 3,
+        "scores": {
+            "tp1": 7.90,
+            "tp2": 10.00,
+            "ck": 6.20,
+            "tk": 6.90,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Giáo dục thể chất 3",
+        "credits": 1,
+        "scores": {
+            "tp1": 7.00,
+            "tp2": 7.00,
+            "ck": 5.00,
+            "tk": 5.60,
+            "letter": "C"
+        }
+    },
+    {
+        "subject": "Toán xác suất thống kê",
+        "credits": 2,
+        "scores": {
+            "tp1": 4.50,
+            "tp2": 9.00,
+            "ck": 7.50,
+            "tk": 7.00,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Tư tưởng Hồ Chí Minh",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 8.00,
+            "ck": 7.40,
+            "tk": 7.60,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Vật lý đại cương A2",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.50,
+            "tp2": 7.00,
+            "ck": 6.50,
+            "tk": 7.00,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Khoa học quản lý",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 9.00,
+            "ck": 8.00,
+            "tk": 8.10,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Phương pháp tính",
+        "credits": 2,
+        "scores": {
+            "tp1": 7.00,
+            "tp2": 8.00,
+            "ck": 5.50,
+            "tk": 6.00,
+            "letter": "C"
+        }
+    },
+    {
+        "subject": "Thực hành vật lý đại cương 1&2",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 8.00,
+            "ck": 8.00,
+            "tk": 8.00,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Lý thuyết cơ sở dữ liệu",
+        "credits": 2,
+        "scores": {
+            "tp1": 6.00,
+            "tp2": 8.00,
+            "ck": 4.80,
+            "tk": 5.30,
+            "letter": "D+"
+        }
+    },
+    {
+        "subject": "Cơ sở lý thuyết truyền tin",
+        "credits": 2,
+        "scores": {
+            "tp1": 9.00,
+            "tp2": 9.00,
+            "ck": 4.00,
+            "tk": 5.50,
+            "letter": "C"
+        }
+    },
+    {
+        "subject": "Giáo dục thể chất 4",
+        "credits": 1,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 8.00,
+            "ck": 5.00,
+            "tk": 5.90,
+            "letter": "C"
+        }
+    },
+    {
+        "subject": "Otomat và ngôn ngữ hình thức",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 10.00,
+            "ck": 4.00,
+            "tk": 5.40,
+            "letter": "D+"
+        }
+    },
+    {
+        "subject": "Lịch sử Đảng cộng sản Việt Nam",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 9.00,
+            "ck": 5.40,
+            "tk": 6.30,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Quản trị mạng máy tính",
+        "credits": 2,
+        "scores": {
+            "tp1": 7.00,
+            "tp2": 9.00,
+            "ck": 7.50,
+            "tk": 7.50,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Toán rời rạc",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 9.00,
+            "ck": 6.30,
+            "tk": 6.90,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Điện tử tương tự và điện tử số",
+        "credits": 3,
+        "scores": {
+            "tp1": 6.50,
+            "tp2": 8.00,
+            "ck": 6.00,
+            "tk": 6.30,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Hệ quản trị cơ sở dữ liệu",
+        "credits": 2,
+        "scores": {
+            "tp1": 6.00,
+            "tp2": 9.00,
+            "ck": 5.60,
+            "tk": 6.00,
+            "letter": "C"
+        }
+    },
+    {
+        "subject": "Kỹ thuật truyền số liệu",
+        "credits": 2,
+        "scores": {
+            "tp1": 7.50,
+            "tp2": 7.00,
+            "ck": 8.80,
+            "tk": 8.40,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Nguyên lý hệ điều hành",
+        "credits": 2,
+        "scores": {
+            "tp1": 7.70,
+            "tp2": 10.00,
+            "ck": 6.60,
+            "tk": 7.10,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Cấu trúc dữ liệu và giải thuật",
+        "credits": 2,
+        "scores": {
+            "tp1": 7.50,
+            "tp2": 9.00,
+            "ck": 5.00,
+            "tk": 5.90,
+            "letter": "C"
+        }
+    },
+    {
+        "subject": "Linux và phần mềm nguồn mở",
+        "credits": 2,
+        "scores": {
+            "tp1": 6.50,
+            "tp2": 8.00,
+            "ck": 8.50,
+            "tk": 8.00,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Lập trình hướng đối tượng",
+        "credits": 2,
+        "scores": {
+            "tp1": 9.50,
+            "tp2": 9.00,
+            "ck": 4.00,
+            "tk": 5.60,
+            "letter": "C"
+        }
+    },
+    {
+        "subject": "Công nghệ phần mềm",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.50,
+            "tp2": 8.50,
+            "ck": 7.80,
+            "tk": 8.00,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Giáo dục thể chất 5",
+        "credits": 1,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 8.00,
+            "ck": 6.00,
+            "tk": 6.60,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Phân tích, thiết kế hệ thống thông tin",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 8.00,
+            "ck": 4.00,
+            "tk": 5.20,
+            "letter": "D+"
+        }
+    },
+    {
+        "subject": "Kỹ thuật vi xử lý",
+        "credits": 2,
+        "scores": {
+            "tp1": 6.00,
+            "tp2": 7.00,
+            "ck": 6.50,
+            "tk": 6.40,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Tiếng Anh chuyên ngành",
+        "credits": 4,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 8.00,
+            "ck": 8.10,
+            "tk": 8.10,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Xử lý tín hiệu số",
+        "credits": 3,
+        "scores": {
+            "tp1": 9.00,
+            "tp2": 7.50,
+            "ck": 8.00,
+            "tk": 8.20,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Chương trình dịch",
+        "credits": 2,
+        "scores": {
+            "tp1": 6.80,
+            "tp2": 9.00,
+            "ck": 8.40,
+            "tk": 8.10,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Hệ thống viễn thông",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 8.00,
+            "ck": 7.50,
+            "tk": 7.70,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Phát triển ứng dụng web",
+        "credits": 2,
+        "scores": {
+            "tp1": 7.40,
+            "tp2": 9.00,
+            "ck": 6.90,
+            "tk": 7.20,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Kiến trúc máy tính",
+        "credits": 2,
+        "scores": {
+            "tp1": 9.20,
+            "tp2": 8.80,
+            "ck": 9.40,
+            "tk": 9.30,
+            "letter": "A+"
+        }
+    },
+    {
+        "subject": "Hệ thống thông tin di động",
+        "credits": 2,
+        "scores": {
+            "tp1": 8.50,
+            "tp2": 9.00,
+            "ck": 7.30,
+            "tk": 7.70,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Lập trình hợp ngữ",
+        "credits": 3,
+        "scores": {
+            "tp1": 7.50,
+            "tp2": 10.00,
+            "ck": 5.50,
+            "tk": 6.30,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Công nghệ phần mềm nhúng",
+        "credits": 2,
+        "scores": {
+            "tp1": 6.00,
+            "tp2": 10.00,
+            "ck": 7.50,
+            "tk": 7.40,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Lý thuyết độ phức tạp tính toán",
+        "credits": 2,
+        "scores": {
+            "tp1": 6.60,
+            "tp2": 9.00,
+            "ck": 5.20,
+            "tk": 5.80,
+            "letter": "C"
+        }
+    },
+    {
+        "subject": "Phát triển phần mềm ứng dụng",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 10.00,
+            "ck": 7.50,
+            "tk": 7.80,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Quản trị dự án phần mềm",
+        "credits": 2,
+        "scores": {
+            "tp1": 7.00,
+            "tp2": 10.00,
+            "ck": 6.00,
+            "tk": 6.60,
+            "letter": "C+"
+        }
+    },
+    {
+        "subject": "Thiết kế hệ thống nhúng",
+        "credits": 3,
+        "scores": {
+            "tp1": 6.80,
+            "tp2": 10.00,
+            "ck": 7.50,
+            "tk": 7.60,
+            "letter": "B"
+        }
+    },
+    {
+        "subject": "Thực tập cơ sở chuyên ngành",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 9.00,
+            "ck": 9.00,
+            "tk": 8.80,
+            "letter": "A"
+        }
+    },
+    {
+        "subject": "Hệ điều hành nhúng thời gian thực",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 9.00,
+            "ck": 8.50,
+            "tk": 8.40,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Cơ sở an toàn và bảo mật thông tin",
+        "credits": 3,
+        "scores": {
+            "tp1": 7.50,
+            "tp2": 10.00,
+            "ck": 8.00,
+            "tk": 8.10,
+            "letter": "B+"
+        },
+        "isCurrentSemester": true
+    },
+    {
+        "subject": "Lập trình nhân Linux",
+        "credits": 4,
+        "scores": {
+            "tp1": 7.00,
+            "tp2": 10.00,
+            "ck": 7.00,
+            "tk": 7.30,
+            "letter": "B"
+        },
+        "isCurrentSemester": true
+    },
+    {
+        "subject": "An toàn và bảo mật trong phát triển phần mềm di động",
+        "credits": 3,
+        "scores": {
+            "tp1": 9.00,
+            "tp2": 9.00,
+            "ck": 9.00,
+            "tk": 9.00,
+            "letter": "A+"
+        }
+    },
+    {
+        "subject": "Lập trình Android nâng cao",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.50,
+            "tp2": 10.00,
+            "ck": 8.00,
+            "tk": 8.30,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Phát triển game trên Android",
+        "credits": 3,
+        "scores": {
+            "tp1": 9.00,
+            "tp2": 10.00,
+            "ck": 7.50,
+            "tk": 8.00,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Phát triển phần mềm trong thẻ thông minh",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 10.00,
+            "ck": 8.00,
+            "tk": 8.20,
+            "letter": "B+"
+        }
+    },
+    {
+        "subject": "Tối ưu phần mềm di động",
+        "credits": 3,
+        "scores": {
+            "tp1": 8.00,
+            "tp2": 8.00,
+            "ck": 8.50,
+            "tk": 8.40,
+            "letter": "B+"
+        }
+    }
+]

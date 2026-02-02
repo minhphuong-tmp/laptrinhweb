@@ -23,8 +23,7 @@ const Sidebar = () => {
         { path: '/announcements', icon: '📢', label: 'Thông báo CLB', active: location.pathname === '/announcements' },
         { path: '/curriculum', icon: '📖', label: 'Chương trình học', active: location.pathname === '/curriculum' },
         { path: '/leaderboard', icon: '🏆', label: 'Bảng xếp hạng', active: location.pathname === '/leaderboard' },
-        { path: '/finance', icon: '💰', label: 'Quản lý tài chính', active: location.pathname === '/finance' },
-        { path: '/support', icon: '📞', label: 'Liên hệ & Hỗ trợ', active: location.pathname === '/support' },
+        { path: '/grades', icon: '📊', label: 'Bảng điểm', active: location.pathname === '/grades' },
     ];
 
     // Load user image
@@ -64,7 +63,7 @@ const Sidebar = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <img className="clb-logo" src="/images/logo.png"  />
+                    <img className="clb-logo" src="/images/logo.png" />
                     <motion.h3
                         variants={{
                             initial: { opacity: 0 },
@@ -117,7 +116,7 @@ const Sidebar = () => {
                         <div className="user-status">Đang hoạt động</div>
                     </div>
                 </div>
-                
+
                 <motion.button
                     className="logout-btn"
                     onClick={async () => {
