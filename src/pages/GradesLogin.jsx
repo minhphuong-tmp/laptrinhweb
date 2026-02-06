@@ -167,41 +167,78 @@ const GradesLogin = () => {
                             </div>
                         </div>
 
-                        <div className="table-responsive">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Năm học</th>
-                                        <th>Học kỳ</th>
-                                        <th>Môn thi</th>
-                                        <th>Lần</th>
-                                        <th>TP1</th>
-                                        <th>TP2</th>
-                                        <th>ĐQT</th>
-                                        <th>Điểm thi</th>
-                                        <th>Điểm HP</th>
-                                        <th>Điểm chữ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredData.length > 0 ? (
-                                        filteredData.map((row, index) => (
-                                            <tr key={index}>
-                                                {row.map((cell, cellIndex) => (
-                                                    <td key={cellIndex}>{cell}</td>
-                                                ))}
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="11" style={{ textAlign: 'center', padding: '20px' }}>
-                                                Không có dữ liệu cho bộ lọc này.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                        <div className="grades-display">
+                            {(() => {
+                                // 1. Group by Semester
+                                const grouped = {}; // Key: "Year-Semester"
+                                filteredData.forEach(row => {
+                                    const year = row[1] || 'Unknown';
+                                    const sem = row[2] || 'Unknown';
+                                    const key = `${year}_${sem}`;
+                                    if (!grouped[key]) {
+                                        grouped[key] = { year, sem, items: [], totalCredits: 0 };
+                                    }
+                                    grouped[key].items.push(row);
+                                    // Sum credits (Index 11)
+                                    const credits = parseInt(row[11]) || 0;
+                                    grouped[key].totalCredits += credits;
+                                });
+
+                                // 2. Sort Groups (Chronological or user pref) - Assuming Data is already sorted by server
+                                // We just iterate keys in order of appearance (since data is sorted asc)
+                                // OR explicitly sort keys.
+                                const sortedKeys = Object.keys(grouped);
+                                // Since Object.keys order isn't guaranteed, and data is already sorted, 
+                                // we can just map unique keys from data to preserve order.
+                                const uniqueKeys = Array.from(new Set(filteredData.map(r => `${r[1] || 'Unknown'}_${r[2] || 'Unknown'}`)));
+
+                                return uniqueKeys.map(key => {
+                                    const group = grouped[key];
+                                    if (!group) return null;
+
+                                    return (
+                                        <div key={key} className="semester-block">
+                                            <div className="semester-header">
+                                                <h4>{group.year} - Học kỳ {group.sem}</h4>
+                                                <span className="credit-total">(Tổng số tín chỉ: {group.totalCredits})</span>
+                                            </div>
+                                            <div className="table-responsive">
+                                                <table>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Môn học</th>
+                                                            <th>Tín chỉ</th>
+                                                            <th>GK(TP1)</th>
+                                                            <th>CC(TP2)</th>
+                                                            <th>Điểm CK</th>
+                                                            <th>Điểm TK</th>
+                                                            <th>Điểm chữ</th>
+                                                            <th>Kỳ hiện tại</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {group.items.map((row, idx) => {
+                                                            const gradeLetter = row[10] ? row[10].trim().toUpperCase() : '';
+                                                            return (
+                                                                <tr key={idx} className={`grade-${gradeLetter}`}>
+                                                                    <td>{row[3]}</td> {/* Môn */}
+                                                                    <td>{row[11] || '-'}</td> {/* Tín chỉ */}
+                                                                    <td>{row[5] || '-'}</td> {/* TP1 */}
+                                                                    <td>{row[6] || '-'}</td> {/* TP2 */}
+                                                                    <td>{row[8] || '-'}</td> {/* CK (Điểm thi) */}
+                                                                    <td>{row[9] || '-'}</td> {/* TK (HP) */}
+                                                                    <td>{row[10] || '-'}</td> {/* Chữ */}
+                                                                    <td>-</td> {/* Kỳ hiện tại (Placeholder as requested) */}
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
                     </div>
                 )}

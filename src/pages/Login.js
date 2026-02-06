@@ -129,6 +129,13 @@ const Login = () => {
                     <p className="login-subtitle">Vui lòng chọn phương thức đăng nhập</p>
                 </div>
 
+                {loading && (
+                    <div className="loading-overlay">
+                        <div className="spinner"></div>
+                        <div className="loading-text">Đang đăng nhập...</div>
+                    </div>
+                )}
+
                 <div className="login-tabs">
                     <button
                         className={`tab-item ${loginMethod === 'clb' ? 'active' : ''}`}

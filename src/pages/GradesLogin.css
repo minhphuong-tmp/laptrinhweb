@@ -204,3 +204,88 @@ th {
 tr:hover td {
     background-color: var(--bg-secondary);
 }
+
+/* Grade Color Coding */
+.grade-A,
+.grade-A\+ {
+    background-color: rgba(72, 187, 120, 0.15) !important;
+    color: #22543d;
+}
+
+.grade-B,
+.grade-B\+ {
+    background-color: rgba(66, 153, 225, 0.15) !important;
+    color: #2a4365;
+}
+
+.grade-C,
+.grade-C\+ {
+    background-color: rgba(236, 201, 75, 0.15) !important;
+    color: #744210;
+}
+
+.grade-D,
+.grade-D\+ {
+    background-color: rgba(237, 137, 54, 0.15) !important;
+    color: #7b341e;
+}
+
+.grade-F {
+    background-color: rgba(245, 101, 101, 0.15) !important;
+    color: #742a2a;
+}
+
+/* Separator Row */
+.separator-row {
+    background-color: #eee !important;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Grouped Semester Layout */
+.semester-block {
+    margin-bottom: 30px;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+}
+
+.semester-header {
+    background: var(--bg-secondary);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.semester-header h4 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.credit-total {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.semester-block table {
+    margin: 0;
+}
+
+.semester-block th {
+    background: transparent;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.semester-block td {
+    padding: 14px 20px;
+}

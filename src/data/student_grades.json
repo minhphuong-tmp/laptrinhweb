@@ -133,7 +133,7 @@
         }
     },
     {
-        "subject": "Công nghệ mạng máy tính",
+        "subject": "Công nghệ Công nghệ mạng máy tính",
         "credits": 3,
         "scores": {
             "tp1": 7.90,
@@ -155,7 +155,7 @@
         }
     },
     {
-        "subject": "Toán xác suất thống kê",
+        "subject": "Toán Toán xác suất thống kê",
         "credits": 2,
         "scores": {
             "tp1": 4.50,
@@ -210,7 +210,7 @@
         }
     },
     {
-        "subject": "Thực hành vật lý đại cương 1&2",
+        "subject": "Thực hành Vật lý đại cương A1&2",
         "credits": 2,
         "scores": {
             "tp1": 8.00,
@@ -596,7 +596,7 @@
         "isCurrentSemester": true
     },
     {
-        "subject": "Lập trình nhân Linux",
+        "subject": "Lập trình nhân Linux",
         "credits": 4,
         "scores": {
             "tp1": 7.00,

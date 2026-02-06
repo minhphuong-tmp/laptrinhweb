@@ -1,13 +1,106 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
+import GradeTable from '../components/GradeTable';
 import './Curriculum.css';
-import studentGrades from '../data/student_grades.json';
+import './Curriculum.css';
+import ReactMarkdown from 'react-markdown';
+
 
 const Curriculum = () => {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [selectedMajor, setSelectedMajor] = useState('cntt'); // 'cntt', 'attm', 'dtvt' - bắt đầu với CNTT
-    const [activeTab, setActiveTab] = useState('objectives'); // 'objectives', 'curriculum', 'conditions', 'progress'
+    const [cachedGrades, setCachedGrades] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+
+    const [tempGrades, setTempGrades] = useState(null);
+    const [aiSuggestion, setAiSuggestion] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
+
+
+    const handleEdit = () => {
+        if (!cachedGrades) return;
+        setTempGrades(JSON.parse(JSON.stringify(cachedGrades)));
+        setIsEditing(true);
+    };
+
+    const handleCancel = () => {
+        setIsEditing(false);
+        setTempGrades(null);
+    };
+
+    const handleSave = () => {
+        setCachedGrades(tempGrades);
+        // Persist to local storage so it survives reload
+        localStorage.setItem('cached_grades', JSON.stringify(tempGrades));
+        setIsEditing(false);
+        setTempGrades(null);
+    };
+
+    const handleGradeChange = (rowIndex, colIndex, val) => {
+        setTempGrades(prev => {
+            const newGrades = [...prev];
+            newGrades[rowIndex] = [...newGrades[rowIndex]];
+            newGrades[rowIndex][colIndex] = val;
+
+            // Mark as manual edit (using index 15 as flag)
+            // Ensure array is long enough
+            while (newGrades[rowIndex].length <= 15) newGrades[rowIndex].push('');
+            newGrades[rowIndex][15] = 'true';
+
+            return newGrades;
+        });
+    };
+
+    const handleSuggestRoadmap = async () => {
+        if (!cachedGrades || cachedGrades.length === 0) {
+            alert('Bạn cần có dữ liệu điểm trước khi yêu cầu gợi ý!');
+            return;
+        }
+
+        const currentMajorInfo = curriculumData.majors[selectedMajor];
+        const currentRoadmap = curriculumData.roadmap[selectedMajor];
+
+        setAiLoading(true);
+        setAiSuggestion(null);
+
+        try {
+            const response = await fetch('http://localhost:3001/api/suggest-roadmap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grades: cachedGrades,
+                    major: currentMajorInfo.name,
+                    curriculum: { roadmap: currentRoadmap }
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setAiSuggestion(data.suggestion);
+            } else {
+                alert('Lỗi AI: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Lỗi kết nối:', error);
+            alert('Không thể kết nối đến server AI API.');
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+
+    useEffect(() => {
+        const cached = localStorage.getItem('cached_grades');
+        if (cached) {
+            try {
+                setCachedGrades(JSON.parse(cached));
+            } catch (e) {
+                console.error("Failed to parse cached grades", e);
+            }
+        }
+    }, []);
 
     // Mock data - Chương trình học theo ngành
     const [curriculumData, setCurriculumData] = useState({
@@ -518,10 +611,10 @@ const Curriculum = () => {
                     semester: 'Học kỳ 1',
                     duration: 'Tổng số tín chỉ: 20',
                     courses: [
-                        'Giải tích 1 (3 tín chỉ)',
-                        'Đại số tuyến tính (3 tín chỉ)',
+                        'Toán cao cấp A1 (3 tín chỉ)',
+                        'Toán cao cấp A3 (3 tín chỉ)',
                         'Tin học đại cương (2 tín chỉ)',
-                        'Triết học Mác – Lê nin (3 tín chỉ)',
+                        'Triết học Mác - Lênin (3 tín chỉ)',
                         'Giáo dục quốc phòng an ninh (8 tín chỉ)',
                         'Giáo dục thể chất 1 (1 tín chỉ)'
                     ]
@@ -530,11 +623,11 @@ const Curriculum = () => {
                     semester: 'Học kỳ 2',
                     duration: 'Tổng số tín chỉ: 18',
                     courses: [
-                        'Vật lý đại cương 1 (3 tín chỉ)',
-                        'Giải tích 2 (3 tín chỉ)',
+                        'Vật lý đại cương A1 (3 tín chỉ)',
+                        'Toán cao cấp A2 (3 tín chỉ)',
                         'Lập trình căn bản (3 tín chỉ)',
-                        'Kinh tế chính trị Mác – Lênin (2 tín chỉ)',
-                        'Môn tự chọn (2 tín chỉ)',
+                        'Kinh tế chính trị Mác - Lênin (2 tín chỉ)',
+                        'Khoa học quản lý (2 tín chỉ)',
                         'Lịch sử Đảng Cộng sản Việt Nam (2 tín chỉ)',
                         'Giáo dục thể chất 2 (1 tín chỉ)',
                         'Kỹ năng mềm (2 tín chỉ)'
@@ -544,12 +637,12 @@ const Curriculum = () => {
                     semester: 'Học kỳ 3',
                     duration: 'Tổng số tín chỉ: 18',
                     courses: [
-                        'Vật lý đại cương 2 (3 tín chỉ)',
-                        'Thực hành vật lý đại cương 1 & 2 (2 tín chỉ)',
+                        'Vật lý đại cương A2 (3 tín chỉ)',
+                        'Thực hành vật lý đại cương 1&2 (2 tín chỉ)',
                         'Tiếng Anh 1 (3 tín chỉ)',
-                        'Xác suất thống kê (2 tín chỉ)',
+                        'Toán xác suất thống kê (2 tín chỉ)',
                         'Phương pháp tính (2 tín chỉ)',
-                        'Mạng máy tính (3 tín chỉ)',
+                        'Công nghệ mạng máy tính (3 tín chỉ)',
                         'Tư tưởng Hồ Chí Minh (2 tín chỉ)',
                         'Giáo dục thể chất 3 (1 tín chỉ)'
                     ]
@@ -575,9 +668,7 @@ const Curriculum = () => {
                     courses: [
                         'Tiếng Anh 3 (4 tín chỉ)',
                         'Lập trình hướng đối tượng (2 tín chỉ)',
-                        'Phát triển phần mềm ứng dụng (2 tín chỉ)',
                         'Cấu trúc dữ liệu và giải thuật (2 tín chỉ)',
-                        'Lý thuyết độ phức tạp tính toán (2 tín chỉ)',
                         'Hệ quản trị cơ sở dữ liệu (2 tín chỉ)',
                         'Kỹ thuật vi xử lý (2 tín chỉ)',
                         'Cơ sở lý thuyết truyền tin (2 tín chỉ)',
@@ -597,7 +688,7 @@ const Curriculum = () => {
                         'Xử lý tín hiệu số (2 tín chỉ)',
                         'Kỹ thuật truyền số liệu (2 tín chỉ)',
                         'Hệ thống viễn thông (2 tín chỉ)',
-                        'Hệ thống thông tin di động (2 tín chỉ)'
+
                     ]
                 },
                 {
@@ -605,36 +696,37 @@ const Curriculum = () => {
                     duration: 'Tổng số tín chỉ: 23',
                     courses: [
                         'Thiết kế hệ thống nhúng (3 tín chỉ)',
-                        'Công nghệ phần mềm nhúng (2 tín chỉ)',
-                        'Hệ điều hành nhúng thời gian thực (3 tín chỉ)',
-                        'Kiểm thử phần mềm nhúng (2 tín chỉ)',
-                        'Cơ sở an toàn và bảo mật thông tin (3 tín chỉ)',
+                        'Công nghệ phần mềm nhúng (2 tín chỉ)',
+                        'Lý thuyết độ phức tạp tính toán (2 tín chỉ)',
+                        'Hệ thống thông tin di động (2 tín chỉ)',
                         'Linux và phần mềm nguồn mở (2 tín chỉ)',
-                        'Lập trình hợp ngữ (3 tín chỉ)',
+                        'Lập trình hợp ngữ (3 tín chỉ)',
                         'Quản trị dự án phần mềm (2 tín chỉ)',
-                        'Thực tập cơ sở chuyên ngành (3 tín chỉ)'
+                        'Thực tập cơ sở chuyên ngành (3 tín chỉ)',
+                        'Phát triển phần mềm ứng dụng (2 tín chỉ)',
+
                     ]
                 },
                 {
                     semester: 'Học kỳ 8',
                     duration: 'Tổng số tín chỉ: 20',
                     courses: [
-                        'Lập trình nhân Linux (4 tín chỉ)',
+                        'Lập trình nhân Linux (4 tín chỉ)',
                         'Lập trình driver (4 tín chỉ)',
-                        'Lập trình ARM cơ bản (3 tín chỉ)',
-                        'Lập trình hệ thống nhúng Linux (3 tín chỉ)',
+                        'Hệ điều hành nhúng thời gian thực (3 tín chỉ)',
+                        'Kiểm thử phần mềm nhúng (2 tín chỉ)',
                         'Lập trình Android cơ bản (3 tín chỉ)',
-                        'Phát triển phần mềm trong thẻ thông minh (3 tín chỉ)'
+                        'Cơ sở an toàn và bảo mật thông tin (3 tín chỉ)',
+
                     ]
                 },
                 {
                     semester: 'Học kỳ 9',
                     duration: 'Tổng số tín chỉ: 24',
                     courses: [
-                        'Lập trình ARM nâng cao (3 tín chỉ)',
-                        'Thị giác máy tính trên nền nhúng (3 tín chỉ)',
-                        'An toàn và bảo mật trong hệ thống nhúng (3 tín chỉ)',
-                        'Tối ưu phần mềm nhúng (3 tín chỉ)',
+
+
+                        'Phát triển phần mềm trong thẻ thông minh (3 tín chỉ)',
                         'Lập trình Android nâng cao (3 tín chỉ)',
                         'Phát triển game trên Android (3 tín chỉ)',
                         'An toàn và bảo mật trong phát triển phần mềm di động (3 tín chỉ)',
@@ -653,14 +745,14 @@ const Curriculum = () => {
             attm: [
                 {
                     semester: 'Học kỳ 1',
-                    courses: ['Lập trình Cơ bản', 'Đại số tuyến tính'],
+                    courses: ['Lập trình Cơ bản', 'Toán cao cấp A2'],
                     duration: 'Đang cập nhật'
                 }
             ],
             dtvt: [
                 {
                     semester: 'Học kỳ 1',
-                    courses: ['Mạch điện tử', 'Giải tích 1'],
+                    courses: ['Mạch điện tử', 'Toán cao cấp A1'],
                     duration: 'Đang cập nhật'
                 }
             ]
@@ -750,306 +842,494 @@ const Curriculum = () => {
                 <div className="curriculum-hero">
                     <div className="hero-content">
                         <h1 className="hero-title">Chương trình học CLB Tin học KMA</h1>
-                        <p className="hero-description">{currentMajor.description}</p>
+                        <p className="hero-description">
+                            Khám phá lộ trình học tập chi tiết cho từng chuyên ngành,
+                            được thiết kế để giúp bạn phát triển toàn diện.
+                        </p>
                     </div>
                 </div>
+
+                {/* AI Suggestion Section - Placed prominently */}
+                <div className="ai-roadmap-section">
+                    <div className="ai-header">
+                        <div className="ai-title">
+                            <span className="icon-sparkle">✨</span>
+                            Gợi ý Lộ trình AI
+                        </div>
+                        <button
+                            className="btn-ai-suggest"
+                            onClick={handleSuggestRoadmap}
+                            disabled={aiLoading}
+                        >
+                            {aiLoading ? 'Đang phân tích...' : 'Gợi ý lộ trình cho tôi'}
+                        </button>
+                    </div>
+
+                    {aiSuggestion && (
+                        <div className="ai-result">
+                            <ReactMarkdown>{aiSuggestion}</ReactMarkdown>
+                        </div>
+                    )}
+                    {aiLoading && <div className="ai-loading-text">Đang phân tích bảng điểm của bạn... (Có thể mất vài giây)</div>}
+                    {!aiSuggestion && !aiLoading && (
+                        <p style={{ color: '#718096', fontStyle: 'italic' }}>
+                            Nhấn nút để AI phân tích điểm và gợi ý môn học tiếp theo cho bạn.
+                        </p>
+                    )}
+                </div>
+
 
                 {/* Filter by Major */}
-                <div className="major-filters">
-                    {majorOptions.map((option) => (
-                        <button
-                            key={option.value}
-                            className={`major-filter-btn ${selectedMajor === option.value ? 'active' : ''}`}
-                            onClick={() => {
-                                setSelectedMajor(option.value);
-                                setActiveTab('objectives'); // Reset về tab đầu tiên khi đổi ngành
-                            }}
-                        >
-                            <span className="filter-icon">{option.icon}</span>
-                            <span className="filter-label">{option.label}</span>
-                        </button>
-                    ))}
-                </div>
+                < div className="major-filters" >
+                    {
+                        majorOptions.map((option) => (
+                            <button
+                                key={option.value}
+                                className={`major-filter-btn ${selectedMajor === option.value ? 'active' : ''}`}
+                                onClick={() => {
+                                    setSelectedMajor(option.value);
+                                }}
+                            >
+                                <span className="filter-icon">{option.icon}</span>
+                                <span className="filter-label">{option.label}</span>
+                            </button>
+                        ))
+                    }
+                </div >
 
-                {/* Tab Navigation */}
-                <div className="curriculum-tabs">
-                    <button
-                        className={`curriculum-tab ${activeTab === 'objectives' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('objectives')}
-                    >
-                        Mục tiêu đào tạo
-                    </button>
-                    <button
-                        className={`curriculum-tab ${activeTab === 'curriculum' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('curriculum')}
-                    >
-                        Chương trình học
-                    </button>
-                    <button
-                        className={`curriculum-tab ${activeTab === 'conditions' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('conditions')}
-                    >
-                        Điều kiện & Cơ hội
-                    </button>
-                    <button
-                        className={`curriculum-tab ${activeTab === 'progress' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('progress')}
-                    >
-                        Tiến độ học tập
-                    </button>
-                </div>
-
-                {/* Tab Content */}
-                {activeTab === 'objectives' && (
-                    <div className="curriculum-section">
-                        <h2 className="section-title">Mục tiêu đào tạo</h2>
-
-                        {/* Mục tiêu chung */}
-                        <div className="objectives-section">
-                            <h3 className="subsection-title">Mục tiêu chung</h3>
-                            <div className="objectives-grid">
-                                {currentMajor.objectives.general.map((objective, index) => (
-                                    <div key={index} className="objective-card">
-                                        <div className="objective-icon">🎯</div>
-                                        <p className="objective-text">{objective}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Mục tiêu về chính trị, đạo đức */}
-                        <div className="objectives-section">
-                            <h3 className="subsection-title">Mục tiêu về chính trị, đạo đức</h3>
-                            <div className="objectives-list">
-                                {currentMajor.objectives.political.map((objective, index) => (
-                                    <div key={index} className="objective-item">
-                                        <span className="objective-number">{objective.code}</span>
-                                        <p>{objective.text}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Mục tiêu về kiến thức */}
-                        <div className="objectives-section">
-                            <h3 className="subsection-title">Mục tiêu về kiến thức</h3>
-                            <div className="objectives-list">
-                                {currentMajor.objectives.knowledge.map((objective, index) => (
-                                    <div key={index} className="objective-item">
-                                        <span className="objective-number">{objective.code}</span>
-                                        <p>{objective.text}</p>
-                                    </div>
-                                ))}
-                            </div>
+                {/* Progress Section (Previously Tabbed) */}
+                < div className="curriculum-section" >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h2 className="section-title" style={{ marginBottom: 0 }}>Tiến độ học tập (Bảng điểm)</h2>
+                        <div className="edit-controls">
+                            {!isEditing ? (
+                                <button
+                                    onClick={handleEdit}
+                                    style={{
+                                        padding: '6px 12px',
+                                        backgroundColor: '#3182ce',
+                                        color: 'white',
+                                        borderRadius: '4px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    Chỉnh sửa
+                                </button>
+                            ) : (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={handleSave}
+                                        style={{
+                                            padding: '6px 12px',
+                                            backgroundColor: '#38a169',
+                                            color: 'white',
+                                            borderRadius: '4px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        Lưu
+                                    </button>
+                                    <button
+                                        onClick={handleCancel}
+                                        style={{
+                                            padding: '6px 12px',
+                                            backgroundColor: '#e53e3e',
+                                            color: 'white',
+                                            borderRadius: '4px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        Hủy
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
-                )}
 
-                {activeTab === 'curriculum' && (
-                    <div className="curriculum-section">
-                        <h2 className="section-title">Chương trình học</h2>
+                    {
+                        (() => {
+                            // --- CALCULATION LOGIC ---
+                            const roadmap = curriculumData.roadmap[selectedMajor] || [];
+                            const matchedIndices = new Set();
+                            const mapSubjectToGrade = {};
+                            const normalize = (str) => str ? str.normalize('NFC').toLowerCase().trim().replace(/\s+/g, ' ') : '';
+                            const matchedSubjectNames = new Set();
 
-                        <div className="courses-grid">
-                            {filteredCourses.map((course) => (
-                                <div key={course.id} className="course-card">
-                                    <div className="course-header">
-                                        <div className={`course-level-badge level-${course.level.toLowerCase().replace(/\s+/g, '-')}`}>
-                                            {course.level}
-                                        </div>
-                                        <h3 className="course-title">{course.title}</h3>
-                                    </div>
-                                    <p className="course-description">{course.description}</p>
-                                    <div className="course-info">
-                                        <div className="info-item">
-                                            <span className="info-icon">⏱️</span>
-                                            <span className="info-text">{course.duration}</span>
-                                        </div>
-                                        <div className="info-item">
-                                            <span className="info-icon">👨‍🏫</span>
-                                            <span className="info-text">{course.instructor}</span>
-                                        </div>
-                                        <div className="info-item">
-                                            <span className="info-icon">📅</span>
-                                            <span className="info-text">{course.schedule}</span>
-                                        </div>
-                                    </div>
-                                    <div className="course-topics">
-                                        <h4 className="topics-title">Nội dung học:</h4>
-                                        <ul className="topics-list">
-                                            {course.topics.map((topic, index) => (
-                                                <li key={index} className="topic-item">
-                                                    <span className="topic-icon">✓</span>
-                                                    {topic}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                            // Use tempGrades if editing, else cachedGrades
+                            const displayGrades = isEditing ? tempGrades : cachedGrades;
 
-                        {/* Roadmap Section */}
-                        <div className="roadmap-section">
-                            <h2 className="section-title">Lộ trình học tập</h2>
-                            <div className="roadmap-container">
-                                {(curriculumData.roadmap[selectedMajor] || []).map((semester, index) => (
-                                    <div key={index} className="roadmap-item">
-                                        <div className="roadmap-timeline">
-                                            <div className="timeline-dot"></div>
-                                            {index < curriculumData.roadmap.length - 1 && (
-                                                <div className="timeline-line"></div>
-                                            )}
-                                        </div>
-                                        <div className="roadmap-content">
-                                            <div className="roadmap-header">
-                                                <h3 className="roadmap-semester">{semester.semester}</h3>
-                                                <span className="roadmap-duration">{semester.duration}</span>
+                            const aliases = {
+                                'toán cao cấp a3': ['đại số tuyến tính'],
+                                'otomat và ngôn ngữ hình thức': ['ôtômát và ngôn ngữ hình thức'],
+                                'công nghệ mạng máy tính': ['công nghệ mạng máy tính (mạng máy tính)', 'mạng máy tính']
+                            };
+
+                            // 1. Match Grades to Roadmap
+                            roadmap.forEach(semester => {
+                                semester.courses.forEach(courseStr => {
+                                    const match = courseStr.match(/^(.*?)\s*\((\d+)\s*tín chỉ\)$/);
+                                    const subjectNameRaw = match ? match[1] : courseStr;
+                                    const subjectNameNorm = normalize(subjectNameRaw);
+
+                                    if (displayGrades) {
+                                        // Find ALL matching rows
+                                        const allMatches = displayGrades.map((row, index) => ({ row, index })).filter(({ row }) => {
+                                            const rowSubject = normalize(row[3]);
+                                            const rowSubjectClean = rowSubject.replace(/\s*\(.*\).*$/, '');
+
+                                            if (rowSubject === subjectNameNorm || rowSubjectClean === subjectNameNorm) return true;
+
+                                            const subjectAliases = aliases[subjectNameNorm];
+                                            if (subjectAliases) {
+                                                return subjectAliases.some(alias => rowSubject === alias || rowSubjectClean === alias);
+                                            }
+                                            return false;
+                                        });
+
+                                        if (allMatches.length > 0) {
+                                            // Sort to find the "best" match (prioritize valid scores)
+                                            allMatches.sort((a, b) => {
+                                                const scoreA = parseFloat(a.row[9]); // TK
+                                                const scoreB = parseFloat(b.row[9]);
+                                                const hasScoreA = !isNaN(scoreA);
+                                                const hasScoreB = !isNaN(scoreB);
+
+                                                if (hasScoreA && !hasScoreB) return -1; // A comes first
+                                                if (!hasScoreA && hasScoreB) return 1;  // B comes first
+
+                                                if (hasScoreA && hasScoreB) {
+                                                    if (scoreA !== scoreB) return scoreB - scoreA; // Descending score
+
+                                                    // Tie-breaker: Prioritize non-F grades
+                                                    const letterA = a.row[10] || '';
+                                                    const letterB = b.row[10] || '';
+                                                    const isFailA = letterA === 'F' || letterA === 'F+';
+                                                    const isFailB = letterB === 'F' || letterB === 'F+';
+
+                                                    if (isFailA && !isFailB) return 1; // B is better
+                                                    if (!isFailA && isFailB) return -1; // A is better
+                                                }
+                                                return 0;
+                                            });
+
+                                            const bestMatch = allMatches[0];
+
+                                            // Mark ALL matches as used so they don't appear in Unmapped
+                                            allMatches.forEach(m => matchedIndices.add(m.index));
+
+                                            mapSubjectToGrade[courseStr] = { row: bestMatch.row, index: bestMatch.index };
+                                            matchedSubjectNames.add(normalize(bestMatch.row[3]));
+                                        }
+                                    }
+                                });
+                            });
+
+                            // 2. Identify Unmapped & Deduplicate
+                            const rawUnmapped = displayGrades ? displayGrades.map((row, idx) => ({ row, index: idx })).filter((item) => {
+                                const { row, index: idx } = item;
+                                if (matchedIndices.has(idx)) return false;
+                                const subject = row[3];
+                                if (!subject || subject === '---' || subject === 'Môn học') return false;
+                                if (matchedSubjectNames.has(normalize(subject))) return false;
+                                return true;
+                            }) : [];
+
+                            // Deduplicate Unmapped: Group by name, pick best score
+                            const unmappedMap = new Map();
+                            rawUnmapped.forEach(item => {
+                                const name = normalize(item.row[3]);
+                                if (!unmappedMap.has(name)) {
+                                    unmappedMap.set(name, []);
+                                }
+                                unmappedMap.get(name).push(item);
+                            });
+
+                            const unmapped = [];
+                            unmappedMap.forEach((items) => {
+                                // Sort same way as matched: Score Desc, then Pass over Fail
+                                items.sort((a, b) => {
+                                    const scoreA = parseFloat(a.row[9]);
+                                    const scoreB = parseFloat(b.row[9]);
+                                    const hasScoreA = !isNaN(scoreA);
+                                    const hasScoreB = !isNaN(scoreB);
+
+                                    if (hasScoreA && !hasScoreB) return -1;
+                                    if (!hasScoreA && hasScoreB) return 1;
+                                    if (hasScoreA && hasScoreB) {
+                                        if (scoreA !== scoreB) return scoreB - scoreA;
+                                        // letter grade tie breaker
+                                        const letterA = a.row[10] || '';
+                                        const letterB = b.row[10] || '';
+                                        const isFailA = letterA === 'F' || letterA === 'F+';
+                                        const isFailB = letterB === 'F' || letterB === 'F+';
+                                        if (isFailA && !isFailB) return 1;
+                                        if (!isFailA && isFailB) return -1;
+                                    }
+                                    return 0;
+                                });
+                                unmapped.push(items[0]);
+                            });
+
+                            // 3. Calculate Stats
+                            let totalCredits = 0;
+                            let learnedCredits = 0;
+
+                            // Roadmap Credits
+                            roadmap.forEach(semester => {
+                                semester.courses.forEach(courseStr => {
+                                    const match = courseStr.match(/\((\d+)\s*tín chỉ\)/);
+                                    const credits = match ? parseInt(match[1], 10) : 0;
+                                    totalCredits += credits;
+                                    if (mapSubjectToGrade[courseStr]) {
+                                        learnedCredits += credits;
+                                    }
+                                });
+                            });
+
+                            // Unmapped Credits
+                            unmapped.forEach(item => {
+                                const row = item.row;
+                                const credit = parseInt(row[11], 10);
+                                if (!isNaN(credit)) {
+                                    learnedCredits += credit;
+                                }
+                            });
+
+                            // Calculate Avg Score
+                            const allGrades = [...Object.values(mapSubjectToGrade).map(x => x.row), ...unmapped.map(x => x.row)];
+                            const validScoreGrades = allGrades.filter(g => g && !isNaN(parseFloat(g[9])));
+                            const avgScore = validScoreGrades.length > 0
+                                ? (validScoreGrades.reduce((sum, g) => sum + (parseFloat(g[9]) || 0), 0) / validScoreGrades.length).toFixed(2)
+                                : 0;
+
+                            return (
+                                <>
+                                    {/* STATS SECTION */}
+                                    <div className="progress-stats">
+                                        <div className="stats-row">
+                                            <div className="stat-box">
+                                                <div className="stat-val">{learnedCredits} (Đã học) / {totalCredits} (Tổng)</div>
+                                                <div className="stat-lbl">Tín chỉ</div>
                                             </div>
-                                            <div className="roadmap-courses">
-                                                {semester.courses.map((courseName, courseIndex) => (
-                                                    <div key={courseIndex} className="roadmap-course">
-                                                        <span className="course-bullet">📚</span>
-                                                        {courseName}
+                                            <div className="stat-box">
+                                                <div className="stat-val">{avgScore}</div>
+                                                <div className="stat-lbl">Điểm trung bình (TK)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* WARNING / SUMMARY */}
+                                    {!displayGrades && (
+                                        <div className="no-grades-warning" style={{ marginBottom: '20px', padding: '15px', background: '#fff3cd', color: '#856404', borderRadius: '8px', border: '1px solid #ffeeba' }}>
+                                            ⚠️ Chưa có dữ liệu điểm. <Link to="/grades-login">Cập nhật ngay</Link> để xem kết quả thực tế. Dưới đây là lộ trình mẫu.
+                                        </div>
+                                    )}
+                                    {displayGrades && (
+                                        <div className="data-summary" style={{ marginBottom: '20px', fontSize: '0.9rem', color: '#718096' }}>
+                                            Đã tải {displayGrades.length} bản ghi. {isEditing && <span style={{ color: 'red', fontWeight: 'bold' }}>Đang chỉnh sửa...</span>}
+                                        </div>
+                                    )}
+
+                                    {/* ROADMAP SECTION */}
+                                    <div className="progress-roadmap">
+                                        {/* Render Roadmap */}
+                                        {roadmap.map((semester, semIndex) => {
+                                            // Calculate dynamic credits
+                                            const semTotalCredits = semester.courses.reduce((acc, courseStr) => {
+                                                const match = courseStr.match(/\((\d+)\s*tín chỉ\)/);
+                                                return acc + (match ? parseInt(match[1], 10) : 0);
+                                            }, 0);
+
+                                            const semLearnedCredits = semester.courses.reduce((acc, courseStr) => {
+                                                const gradeEntry = mapSubjectToGrade[courseStr];
+                                                if (gradeEntry) {
+                                                    const match = courseStr.match(/\((\d+)\s*tín chỉ\)/);
+                                                    return acc + (match ? parseInt(match[1], 10) : 0);
+                                                }
+                                                return acc;
+                                            }, 0);
+
+                                            return (
+                                                <div key={semIndex} className="semester-block">
+                                                    <h3 className="semester-title">
+                                                        {semester.semester}
+                                                        <span className="semester-credits">
+                                                            ({semLearnedCredits}/{semTotalCredits} tín chỉ)
+                                                        </span>
+                                                    </h3>
+                                                    <div className="semester-table-wrapper">
+                                                        <table className="grades-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Môn học</th>
+                                                                    <th>Tín chỉ</th>
+                                                                    <th>GK(TP1)</th>
+                                                                    <th>CC(TP2)</th>
+                                                                    <th>Điểm CK</th>
+                                                                    <th>Điểm TK</th>
+                                                                    <th>Điểm chữ</th>
+                                                                    <th>Trạng thái</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {semester.courses.map((courseStr, cIndex) => {
+                                                                    const match = courseStr.match(/^(.*?)\s*\((\d+)\s*tín chỉ\)$/);
+                                                                    const subjectName = match ? match[1] : courseStr;
+                                                                    const credits = match ? match[2] : '?';
+
+                                                                    const entry = mapSubjectToGrade[courseStr];
+                                                                    const gradeRow = entry ? entry.row : null;
+                                                                    const gradeIndex = entry ? entry.index : null;
+
+                                                                    const isCompleted = !!gradeRow;
+                                                                    const letterGrade = gradeRow ? gradeRow[10] : '';
+                                                                    const isFail = letterGrade === 'F' || letterGrade === 'F+';
+
+                                                                    let statusClass = 'status-pending';
+                                                                    if (isCompleted) statusClass = isFail ? 'status-fail' : 'status-pass';
+                                                                    if (gradeRow && gradeRow[15] === 'true') statusClass += ' manual-edit'; // If we use flag
+
+                                                                    const renderInput = (colIdx, val) => (
+                                                                        <input
+                                                                            type="text"
+                                                                            value={val || ''}
+                                                                            onChange={(e) => handleGradeChange(gradeIndex, colIdx, e.target.value)}
+                                                                            className="grade-edit-input"
+                                                                            style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+                                                                        />
+                                                                    );
+
+                                                                    return (
+                                                                        <tr key={cIndex} className={`grade-row ${statusClass}`} style={gradeRow && gradeRow[15] === 'true' ? { backgroundColor: '#fffaf0' } : {}}>
+                                                                            <td className="col-subject">{subjectName}</td>
+                                                                            <td className="col-credits">{credits}</td>
+                                                                            <td className="col-score">{isEditing && isCompleted ? renderInput(5, gradeRow[5]) : (gradeRow ? gradeRow[5] : '-')}</td>
+                                                                            <td className="col-score">{isEditing && isCompleted ? renderInput(6, gradeRow[6]) : (gradeRow ? gradeRow[6] : '-')}</td>
+                                                                            <td className="col-score">{isEditing && isCompleted ? renderInput(8, gradeRow[8]) : (gradeRow ? gradeRow[8] : '-')}</td>
+                                                                            <td className="col-score font-bold">{isEditing && isCompleted ? renderInput(9, gradeRow[9]) : (gradeRow ? gradeRow[9] : '-')}</td>
+                                                                            <td className="col-letter">
+                                                                                {gradeRow ? (
+                                                                                    <span className={`letter-badge ${letterGrade.replace('+', '-plus')}`}>
+                                                                                        {letterGrade}
+                                                                                    </span>
+                                                                                ) : '-'}
+                                                                            </td>
+                                                                            <td className="col-term">
+                                                                                {isCompleted ? (
+                                                                                    <span className={`status-badge ${isFail ? 'status-fail' : (letterGrade ? 'status-pass' : 'status-pending')}`}>
+                                                                                        {isFail ? 'Học lại' : (letterGrade ? 'Đạt' : 'Đang học')}
+                                                                                    </span>
+                                                                                ) : null}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
                                                     </div>
-                                                ))}
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* Render Unmapped / Other Subjects */}
+                                        {unmapped.length > 0 && (
+                                            <div className="semester-block unmapped-block">
+                                                <h3 className="semester-title" style={{ background: '#edf2f7', color: '#4a5568' }}>
+                                                    Các môn học khác / Tự chọn
+                                                    <span className="semester-credits">({unmapped.length} môn)</span>
+                                                </h3>
+                                                <div className="semester-table-wrapper">
+                                                    <table className="grades-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Môn học</th>
+                                                                <th>Tín chỉ</th>
+                                                                <th>GK(TP1)</th>
+                                                                <th>CC(TP2)</th>
+                                                                <th>Điểm CK</th>
+                                                                <th>Điểm TK</th>
+                                                                <th>Điểm chữ</th>
+                                                                <th>Trạng thái</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {unmapped.map((item, idx) => {
+                                                                const { row, index: gradeIndex } = item;
+                                                                const letterGrade = row[10] || '';
+                                                                const isFail = letterGrade === 'F' || letterGrade === 'F+';
+                                                                const statusClass = isFail ? 'status-fail' : (letterGrade ? 'status-pass' : 'status-pending');
+
+                                                                const renderInput = (colIdx, val) => (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={val || ''}
+                                                                        onChange={(e) => handleGradeChange(gradeIndex, colIdx, e.target.value)}
+                                                                        className="grade-edit-input"
+                                                                        style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+                                                                    />
+                                                                );
+
+                                                                return (
+                                                                    <tr key={idx} className={`grade-row ${statusClass}`} style={row[15] === 'true' ? { backgroundColor: '#fffaf0' } : {}}>
+                                                                        <td className="col-subject">{row[3]}</td>
+                                                                        <td className="col-credits">{row[11] || '-'}</td>
+                                                                        <td className="col-score">{isEditing ? renderInput(5, row[5]) : (row[5] || '-')}</td>
+                                                                        <td className="col-score">{isEditing ? renderInput(6, row[6]) : (row[6] || '-')}</td>
+                                                                        <td className="col-score">{isEditing ? renderInput(8, row[8]) : (row[8] || '-')}</td>
+                                                                        <td className="col-score font-bold">{isEditing ? renderInput(9, row[9]) : (row[9] || '-')}</td>
+                                                                        <td className="col-letter"><span className={`letter-badge ${letterGrade.replace('+', '-plus')}`}>{letterGrade || '-'}</span></td>
+                                                                        <td className="col-term"><span className={`status-badge ${isFail ? 'status-fail' : (letterGrade ? 'status-pass' : 'status-pending')}`}>{isFail ? 'Học lại' : (letterGrade ? 'Đạt' : 'Đang học')}</span></td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
-                                ))}
-                            </div>
+                                </>
+                            );
+                        })()
+                    }
+                </div >
+
+
+                {/* Debug Section */}
+                < div style={{ marginTop: '40px', padding: '20px', backgroundColor: '#f7fafc', borderRadius: '8px' }}>
+                    <details>
+                        <summary style={{ cursor: 'pointer', color: '#4a5568', fontWeight: 'bold' }}>🛠️ Debug: Danh sách tất cả môn học đã tải ({cachedGrades ? cachedGrades.length : 0})</summary>
+                        <div style={{ marginTop: '10px', fontSize: '0.85rem', maxHeight: '300px', overflowY: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
+                                        <th style={{ padding: '5px' }}>STT</th>
+                                        <th style={{ padding: '5px' }}>Tên môn gốc (Raw Name)</th>
+                                        <th style={{ padding: '5px' }}>Điểm TK</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cachedGrades && cachedGrades.map((row, i) => (
+                                        <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                                            <td style={{ padding: '5px' }}>{i + 1}</td>
+                                            <td style={{ padding: '5px' }}>{row[3]}</td>
+                                            <td style={{ padding: '5px' }}>{row[9]}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                )}
-
-                {activeTab === 'conditions' && (
-                    <div className="curriculum-section">
-                        <h2 className="section-title">Điều kiện & Cơ hội</h2>
-
-                        {/* Điều kiện tham gia */}
-                        <div className="conditions-section">
-                            <h3 className="subsection-title">Điều kiện tham gia</h3>
-                            <div className="conditions-list">
-                                {currentMajor.conditions.requirements.map((requirement, index) => (
-                                    <div key={index} className="condition-item">
-                                        <span className="condition-icon">✓</span>
-                                        <p>{requirement}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Cơ hội */}
-                        <div className="opportunities-section">
-                            <h3 className="subsection-title">Cơ hội</h3>
-                            <div className="opportunities-grid">
-                                {currentMajor.conditions.opportunities.map((opportunity, index) => (
-                                    <div key={index} className="opportunity-card">
-                                        <h4 className="opportunity-title">{opportunity.title}</h4>
-                                        <ul className="opportunity-list">
-                                            {opportunity.items.map((item, itemIndex) => (
-                                                <li key={itemIndex} className="opportunity-item">
-                                                    <span className="opportunity-bullet">•</span>
-                                                    {item}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'progress' && (
-                    <div className="curriculum-section">
-                        <h2 className="section-title">Tiến độ học tập (Bảng điểm)</h2>
-
-                        <div className="progress-stats">
-                            {/* Calculates Stats */}
-                            {(() => {
-                                const totalSubjects = (currentMajor.roadmap || []).reduce((acc, sem) => acc + sem.courses.length, 0);
-                                const completedSubjects = studentGrades.length;
-                                const avgScore = (studentGrades.reduce((sum, g) => sum + (g.scores?.tk || 0), 0) / completedSubjects).toFixed(2);
-                                return (
-                                    <div className="stats-row">
-                                        <div className="stat-box">
-                                            <div className="stat-val">{completedSubjects}/{totalSubjects}</div>
-                                            <div className="stat-lbl">Môn đã học</div>
-                                        </div>
-                                        <div className="stat-box">
-                                            <div className="stat-val">{avgScore}</div>
-                                            <div className="stat-lbl">Điểm trung bình (TK)</div>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-                        </div>
-
-                        <div className="progress-roadmap">
-                            {(curriculumData.roadmap[selectedMajor] || []).map((semester, semIndex) => (
-                                <div key={semIndex} className="semester-block">
-                                    <h3 className="semester-title">{semester.semester} <span className="semester-credits">({semester.duration})</span></h3>
-                                    <div className="semester-table-wrapper">
-                                        <table className="grades-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Môn học</th>
-                                                    <th>Tín chỉ</th>
-                                                    <th>GK(TP1)</th>
-                                                    <th>CC(TP2)</th>
-                                                    <th>Điểm CK</th>
-                                                    <th>Điểm TK</th>
-                                                    <th>Điểm chữ</th>
-                                                    <th>Kỳ hiện tại</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {semester.courses.map((courseStr, cIndex) => {
-                                                    // Parse "Subject Name (credits)"
-                                                    const match = courseStr.match(/^(.*?)\s*\((\d+)\s*tín chỉ\)$/);
-                                                    const subjectName = match ? match[1] : courseStr;
-                                                    const credits = match ? match[2] : '?';
-
-                                                    // Find grade
-                                                    const grade = studentGrades.find(g => g.subject.toLowerCase().trim() === subjectName.toLowerCase().trim());
-                                                    const isCompleted = !!grade;
-
-                                                    // Status helper
-                                                    const isFail = grade?.scores?.letter === 'F' || grade?.note === 'Không đạt';
-                                                    const statusClass = isCompleted ? (isFail ? 'status-fail' : 'status-pass') : 'status-pending';
-
-                                                    return (
-                                                        <tr key={cIndex} className={`grade-row ${statusClass}`}>
-                                                            <td className="col-subject">{subjectName}</td>
-                                                            <td className="col-credits">{credits}</td>
-                                                            <td className="col-score">{grade?.scores?.tp1 !== undefined ? grade.scores.tp1.toFixed(2) : '-'}</td>
-                                                            <td className="col-score">{grade?.scores?.tp2 !== undefined ? grade.scores.tp2.toFixed(2) : '-'}</td>
-                                                            <td className="col-score">{grade?.scores?.ck !== undefined ? grade.scores.ck.toFixed(2) : '-'}</td>
-                                                            <td className="col-score font-bold">{grade?.scores?.tk !== undefined ? grade.scores.tk.toFixed(2) : '-'}</td>
-                                                            <td className="col-letter">
-                                                                <span className={`letter-badge ${grade?.scores?.letter?.replace('+', '-plus')}`}>
-                                                                    {grade?.scores?.letter || '-'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="col-term">
-                                                                {grade?.isCurrentSemester ? (
-                                                                    <span className="status-badge status-pending">Kỳ này</span>
-                                                                ) : '-'}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                    </details>
+                </div >
 
                 {/* CTA Section */}
-                <div className="curriculum-cta">
+                < div className="curriculum-cta" >
                     <h2 className="cta-title">Sẵn sàng bắt đầu hành trình học tập?</h2>
                     <p className="cta-description">
                         Tham gia CLB Tin học KMA để được học tập và phát triển cùng các thành viên khác
@@ -1057,9 +1337,9 @@ const Curriculum = () => {
                     <button className="cta-button">
                         Đăng ký ngay
                     </button>
-                </div>
-            </div>
-        </div>
+                </div >
+            </div >
+        </div >
     );
 };
 

@@ -1,0 +1,98 @@
+.grade-table-container {
+    width: 100%;
+}
+
+.semester-block {
+    margin-bottom: 30px;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+}
+
+.semester-header {
+    background: #f8f9fa;
+    /* Safe fallback/var(--bg-secondary) */
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    /* var(--border-color) */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.semester-header h4 {
+    margin: 0;
+    color: #2d3748;
+    /* var(--primary-color) */
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.credit-total {
+    font-weight: 600;
+    color: #718096;
+    /* var(--text-secondary) */
+    font-size: 0.95rem;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.grade-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.grade-table th {
+    background: white;
+    padding: 14px 20px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+    color: #718096;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.grade-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #edf2f7;
+    color: #2d3748;
+}
+
+.grade-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Color coding */
+.grade-A {
+    background-color: rgba(72, 187, 120, 0.15) !important;
+    color: #22543d;
+}
+
+.grade-B {
+    background-color: rgba(66, 153, 225, 0.15) !important;
+    color: #2a4365;
+}
+
+.grade-C {
+    background-color: rgba(236, 201, 75, 0.15) !important;
+    color: #744210;
+}
+
+.grade-D {
+    background-color: rgba(237, 137, 54, 0.15) !important;
+    color: #7b341e;
+}
+
+.grade-F {
+    background-color: rgba(245, 101, 101, 0.15) !important;
+    color: #742a2a;
+}
