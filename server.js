@@ -401,7 +401,7 @@ app.post('/api/suggest-roadmap', async (req, res) => {
     }
 
     // Dynamic Model Discovery
-    let activeModelName = null;
+    let modelsToTry = [];
     try {
         // Fetch list of models available to this API Key
         // We use the REST API key directly to be sure, as SDK listModels might vary in implementation
@@ -416,19 +416,18 @@ app.post('/api/suggest-roadmap', async (req, res) => {
 
             const preferences = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"];
 
-            // 1. Check exact matches from preference list
+            // 1. Collect ALL matches from preference list
             for (const pref of preferences) {
                 if (availableNames.includes(pref)) {
-                    activeModelName = pref;
-                    break;
+                    modelsToTry.push(pref);
                 }
             }
 
-            // 2. If no exact preference found, pick the first "gemini" model
-            if (!activeModelName) {
+            // 2. If no exact preference found, pick any "gemini" model
+            if (modelsToTry.length === 0) {
                 const anyGemini = listData.models.find(m => m.name.includes('gemini'));
                 if (anyGemini) {
-                    activeModelName = anyGemini.name.replace('models/', '');
+                    modelsToTry.push(anyGemini.name.replace('models/', ''));
                 }
             }
         }
@@ -437,7 +436,9 @@ app.post('/api/suggest-roadmap', async (req, res) => {
     }
 
     // Fallback list if discovery failed or returned nothing
-    const modelsToTry = activeModelName ? [activeModelName] : ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+    if (modelsToTry.length === 0) {
+        modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+    }
     let errorLog = [];
 
     for (const modelName of modelsToTry) {
