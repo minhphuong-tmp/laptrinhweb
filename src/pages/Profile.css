@@ -1,0 +1,743 @@
+/* Profile Container - Sử dụng Facebook Layout */
+.profile-container {
+    width: 100%;
+    padding: 0;
+}
+
+/* Profile-specific styles to prevent conflicts */
+.facebook-layout.profile-other-user {
+    /* Ensure consistent styling for other user profiles */
+}
+
+.facebook-layout.profile-current-user {
+    /* Ensure consistent styling for current user profile */
+}
+
+/* Force reset any conflicting styles */
+.facebook-layout.profile-other-user *,
+.facebook-layout.profile-current-user * {
+    box-sizing: border-box;
+}
+
+/* Profile Header - Giống Home Post Card */
+.profile-header {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e4e6ea;
+    margin-bottom: 20px;
+    padding: 20px;
+}
+
+.profile-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.profile-header h2 {
+    color: #1c1e21;
+    font-weight: 600;
+    margin: 0;
+    font-size: 24px;
+}
+
+/* Profile Content - Giống Home Content Wrapper */
+.profile-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+/* Profile Card - Giống Home Post Card */
+.profile-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e4e6ea;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* Profile Avatar Section - Giống Home Post Header */
+.profile-avatar-section {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.avatar-container {
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    border: 3px solid var(--border-color);
+}
+
+/* Profile Info - Giống Home Post Author */
+.profile-info {
+    flex: 1;
+}
+
+.profile-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1c1e21;
+}
+
+.profile-email {
+    margin: 0 0 4px 0;
+    color: #65676b;
+    font-size: 14px;
+}
+
+.profile-bio {
+    margin: 0;
+    color: #1c1e21;
+    line-height: 1.5;
+}
+
+.profile-bio-placeholder {
+    margin: 0;
+    color: #65676b;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.profile-address,
+.profile-phone {
+    margin: 0 0 var(--spacing-xs) 0;
+    color: var(--text-color);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+/* Profile Actions - Giống Home Post Actions */
+.profile-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #e4e6ea;
+    margin-top: 12px;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.edit-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.edit-form {
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    padding: var(--spacing-lg);
+}
+
+.edit-form h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-dark);
+    font-weight: var(--font-semiBold);
+}
+
+/* Profile Stats - Giống Home Post Card */
+.profile-stats {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e4e6ea;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.profile-stats h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-dark);
+    font-weight: var(--font-semiBold);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background-color: var(--surface-color);
+    border-radius: var(--radius-sm);
+}
+
+.stat-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: var(--radius-sm);
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-number {
+    font-size: 18px;
+    font-weight: var(--font-bold);
+    color: var(--text-dark);
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+/* User Posts Section */
+/* User Posts Section - Giống Home Post Card */
+.user-posts-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e4e6ea;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.user-posts-section h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-dark);
+    font-weight: var(--font-semiBold);
+}
+
+.loading-posts {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    color: var(--text-light);
+}
+
+/* Virtualized Post List */
+.virtualized-post-list {
+    width: 100%;
+    height: calc(100vh - 200px);
+}
+
+.posts-container {
+    width: 100%;
+    height: calc(100vh - 200px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.posts-list {
+    width: 100%;
+}
+
+.end-of-posts {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--gray-600);
+    font-size: 18px;
+    font-weight: 500;
+    background-color: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+}
+
+.loading-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--gray-600);
+}
+
+.intersection-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--gray-500);
+    font-style: italic;
+    background-color: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+}
+
+/* Post Item - Giống Home Post Card */
+.profile-container .post-item {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e4e6ea;
+    padding: 16px;
+    margin-bottom: 16px;
+    transition: all 0.2s ease;
+}
+
+.loading-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--gray-600);
+}
+
+.error-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--red-500);
+    background-color: var(--red-50);
+    border: 1px solid var(--red-200);
+}
+
+.no-posts {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--gray-600);
+    font-size: 18px;
+}
+
+.loading-spinner {
+    font-size: 18px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Posts Grid - Giống Home Posts Feed */
+.posts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.no-posts {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--text-light);
+}
+
+.no-posts-icon {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+.no-posts-hint {
+    font-size: 14px;
+    margin: 0;
+    opacity: 0.8;
+}
+
+/* Load More Button */
+.load-more-container {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+    padding: 20px;
+}
+
+.load-more-btn {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    min-width: 200px;
+}
+
+.load-more-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+}
+
+.load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.load-more-btn:active {
+    transform: translateY(0);
+}
+
+/* Infinite Scroll Loading */
+.infinite-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    color: var(--text-light);
+}
+
+.infinite-loading .loading-spinner {
+    font-size: 20px;
+    animation: spin 1s linear infinite;
+}
+
+/* End of Posts Indicator */
+.end-of-posts {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.end-of-posts p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 14px;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .profile-container {
+        padding: var(--spacing-sm);
+    }
+
+    .profile-avatar-section {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+    }
+
+    .profile-actions {
+        justify-content: center;
+    }
+
+    .edit-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-item {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-xs);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 28px;
+    }
+}
+
+/* Post Cards Styles - moved to FacebookLayout.css to avoid conflicts */
+
+/* Post Header - Giống Home Post Header */
+.profile-container .post-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e4e6ea;
+}
+
+/* Post Author - Giống Home Post Author */
+.profile-container .post-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.author-info {
+    flex: 1;
+}
+
+.author-name {
+    color: var(--text-dark);
+    font-size: 16px;
+    font-weight: var(--font-semiBold);
+    margin: 0 0 4px 0;
+}
+
+.profile-container .post-time {
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+/* Post Content - Giống Home Post Content */
+.profile-container .post-content {
+    margin-bottom: 16px;
+    padding: 8px 0;
+}
+
+.profile-container .post-title {
+    color: var(--text-dark);
+    font-size: 18px;
+    font-weight: var(--font-semiBold);
+    margin: 0 0 var(--spacing-sm) 0;
+    line-height: 1.4;
+}
+
+.profile-container .post-text {
+    color: var(--text-color);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.profile-container .post-image {
+    margin-top: var(--spacing-md);
+}
+
+.profile-container .post-image {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 20px 0 !important;
+    border-radius: 12px;
+    background-color: transparent;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.profile-container .post-image img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 800px !important;
+    min-height: 400px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 12px;
+    background-color: #f8f9fa;
+    display: block;
+    margin: 0;
+    padding: 0;
+    transition: transform 0.3s ease;
+}
+
+.profile-container .post-image img:hover {
+    transform: scale(1.02);
+}
+
+/* Post Actions - Giống Home Post Actions */
+.profile-container .post-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #e4e6ea;
+    margin-top: 12px;
+}
+
+/* Action Button - Giống Home Post Action Button */
+.action-button {
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #65676b;
+}
+
+.action-button:hover {
+    background-color: #f0f2f5;
+}
+
+.like-button:hover {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.comment-button:hover {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.share-button:hover {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+/* Infinite Loading */
+.infinite-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    margin: 20px 0;
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    min-height: 80px;
+}
+
+.infinite-loading .loading-spinner {
+    font-size: 24px;
+    margin-bottom: 8px;
+    animation: spin 1s linear infinite;
+}
+
+.infinite-loading p {
+    margin: 0;
+    color: var(--text-medium);
+    font-size: 14px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.end-of-posts {
+    text-align: center;
+    padding: 20px;
+    margin: 20px 0;
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.end-of-posts p {
+    margin: 0;
+    color: var(--text-medium);
+    font-size: 14px;
+}
+
+/* Scroll Trigger Indicator */
+.scroll-trigger {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    margin: 20px 0;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.scroll-trigger:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.scroll-trigger p {
+    margin: 0;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    font-style: normal;
+}
+
+/* IntersectionObserver Trigger */
+.load-more-trigger {
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.load-more-trigger:hover {
+    opacity: 1;
+}
+
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 10px;
+    border: 2px dashed rgba(102, 126, 234, 0.3);
+}
+
+.loading-indicator .loading-spinner {
+    font-size: 24px;
+    animation: spin 1s linear infinite;
+}
+
+.loading-indicator p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

@@ -1,0 +1,201 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import Avatar from '../components/Avatar';
+import { useAuth } from '../context/AuthContext';
+import { deleteConversation, getConversations } from '../services/chatService';
+import './ChatList.css';
+
+const ChatList = () => {
+    console.log('ChatList component rendered');
+    const { user } = useAuth();
+    const [conversations, setConversations] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (user) {
+            loadConversations();
+            setupPolling();
+        }
+    }, [user]);
+
+    const loadConversations = async () => {
+        try {
+            const result = await getConversations(user.id);
+            console.log('📊 Conversations result:', result);
+            if (result.success) {
+                setConversations(result.data);
+                console.log('✅ Conversations loaded:', result.data.length, 'conversations');
+            } else {
+                console.error('❌ Failed to load conversations:', result.msg);
+            }
+        } catch (error) {
+            console.error('❌ Error loading conversations:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const setupPolling = () => {
+        // Polling thay vì real-time subscription
+        const pollInterval = setInterval(() => {
+            loadConversations();
+        }, 5000); // Poll mỗi 5 giây
+
+        return () => {
+            clearInterval(pollInterval);
+        };
+    };
+
+    const handleDeleteConversation = async (conversationId) => {
+        if (window.confirm('Bạn có chắc chắn muốn xóa cuộc trò chuyện này?')) {
+            try {
+                const result = await deleteConversation(conversationId, user.id);
+                if (result.success) {
+                    setConversations(conversations.filter(conv => conv.id !== conversationId));
+                } else {
+                    alert(result.msg);
+                }
+            } catch (error) {
+                console.error('Error deleting conversation:', error);
+                alert('Không thể xóa cuộc trò chuyện');
+            }
+        }
+    };
+
+    const formatTime = (timestamp) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+
+        console.log('formatTime debug:', {
+            timestamp,
+            date: date.toISOString(),
+            now: now.toISOString(),
+            diff: diff,
+            diffInDays: Math.floor(diff / 86400000)
+        });
+
+        if (diff < 60000) return 'Vừa xong';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)} phút trước`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)} giờ trước`;
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)} ngày trước`;
+        if (diff < 2592000000) return `${Math.floor(diff / 604800000)} tuần trước`;
+        return `${Math.floor(diff / 2592000000)} tháng trước`;
+    };
+
+    const getConversationName = (conversation) => {
+        if (conversation.type === 'group') {
+            return conversation.name || 'Nhóm chat';
+        }
+
+        // Tìm người khác trong cuộc trò chuyện 1-1
+        const otherMember = conversation.conversation_members?.find(
+            member => member.user_id !== user.id
+        );
+        return otherMember?.user?.name || 'Người dùng';
+    };
+
+    const getConversationAvatar = (conversation) => {
+        if (conversation.type === 'group') {
+            return <Avatar src={undefined} name="Group" size={40} />;
+        }
+
+        const otherMember = conversation.conversation_members?.find(
+            member => member.user_id !== user.id
+        );
+        
+        return (
+            <Avatar 
+                src={otherMember?.user?.image} 
+                name={otherMember?.user?.name || 'User'} 
+                size={40} 
+            />
+        );
+    };
+
+    if (loading) {
+        return (
+            <div className="chat-list-container">
+                <div className="loading">Đang tải...</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="facebook-layout">
+            <div className="chat-list-container">
+                <header className="chat-list-header">
+                    <h1>Tin nhắn</h1>
+                    <Link to="/new-chat" className="new-chat-button">
+                        ➕ Tạo mới
+                    </Link>
+                </header>
+
+            <div className="conversations-list">
+                {conversations.length === 0 ? (
+                    <div className="empty-state">
+                        <div className="empty-icon">💬</div>
+                        <h3>Chưa có cuộc trò chuyện nào</h3>
+                        <p>Hãy tạo cuộc trò chuyện đầu tiên của bạn!</p>
+                        <Link to="/new-chat" className="create-first-button">
+                            Tạo cuộc trò chuyện
+                        </Link>
+                    </div>
+                ) : (
+                    conversations.map((conversation) => (
+                        <div key={conversation.id} className="conversation-item">
+                            <Link to={`/chat/${conversation.id}`} className="conversation-link">
+                                <div className="conversation-avatar">
+                                    {getConversationAvatar(conversation)}
+                                </div>
+                                <div className="conversation-content">
+                                    <div className="conversation-header">
+                                        <h3 className="conversation-name">
+                                            {getConversationName(conversation)}
+                                        </h3>
+                                        <span className="conversation-time">
+                                            {(() => {
+                                                console.log('Conversation debug:', {
+                                                    id: conversation.id,
+                                                    messages: conversation.messages,
+                                                    messagesLength: conversation.messages?.length
+                                                });
+                                                
+                                                if (conversation.messages && conversation.messages.length > 0) {
+                                                    const lastMessage = conversation.messages[conversation.messages.length - 1];
+                                                    console.log('Last message:', lastMessage);
+                                                    return formatTime(lastMessage.created_at);
+                                                }
+                                                return 'Chưa có tin nhắn';
+                                            })()}
+                                        </span>
+                                    </div>
+                                    <p className="conversation-preview">
+                                        {conversation.messages && conversation.messages.length > 0 
+                                            ? conversation.messages[conversation.messages.length - 1].content 
+                                            : 'Chưa có tin nhắn'
+                                        }
+                                    </p>
+                                </div>
+                            </Link>
+                            <button
+                                className="delete-button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleDeleteConversation(conversation.id);
+                                }}
+                                title="Xóa cuộc trò chuyện"
+                            >
+                                🗑️
+                            </button>
+                        </div>
+                    ))
+                )}
+            </div>
+            </div>
+        </div>
+    );
+};
+
+export default ChatList;
+

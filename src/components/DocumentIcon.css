@@ -1,0 +1,49 @@
+.document-icon {
+    font-size: 24px;
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+    transition: transform 0.2s ease;
+}
+
+.document-icon:hover {
+    transform: scale(1.1);
+}
+
+/* Icon sizes */
+.document-icon.small {
+    font-size: 16px;
+}
+
+.document-icon.medium {
+    font-size: 24px;
+}
+
+.document-icon.large {
+    font-size: 32px;
+}
+
+.document-icon.extra-large {
+    font-size: 48px;
+}
+
+/* Icon in document cards */
+.document-card .document-icon {
+    font-size: 32px;
+    margin-right: 12px;
+}
+
+/* Icon in document list */
+.document-list .document-icon {
+    font-size: 20px;
+    margin-right: 8px;
+}
+
+/* Icon in upload preview */
+.upload-preview .document-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+    display: block;
+    text-align: center;
+}
+

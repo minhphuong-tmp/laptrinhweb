@@ -1,0 +1,202 @@
+/* Simple 3D Layout - Clean and minimal */
+.three-d-layout-simple {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+        linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Animated background pattern */
+.three-d-layout-simple::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        linear-gradient(rgba(139, 92, 246, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139, 92, 246, 0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* Top Bar */
+.three-d-topbar {
+    height: 70px;
+    background: rgba(30, 41, 59, 0.9);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+    padding: 0 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transform-style: preserve-3d;
+}
+
+.three-d-topbar-left {
+    display: flex;
+    align-items: center;
+}
+
+.three-d-title {
+    color: #a78bfa;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+    text-shadow: 0 0 10px rgba(167, 139, 250, 0.6);
+}
+
+.three-d-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.three-d-username {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Main Container */
+.three-d-main-container {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.three-d-sidebar {
+    width: 250px;
+    background: rgba(30, 41, 59, 0.85);
+    border-right: 1px solid rgba(139, 92, 246, 0.3);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    transform-style: preserve-3d;
+}
+
+.three-d-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.three-d-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: rgba(51, 65, 85, 0.6);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.three-d-nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: #a78bfa;
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+}
+
+.three-d-nav-item:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: translateX(5px) translateZ(10px) rotateY(5deg);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+}
+
+.three-d-nav-item:hover::before {
+    transform: scaleY(1);
+}
+
+.three-d-nav-item.active {
+    background: rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.7);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    transform: translateZ(5px);
+}
+
+.three-d-nav-item.active::before {
+    transform: scaleY(1);
+}
+
+.nav-icon {
+    font-size: 24px;
+    transition: transform 0.3s ease;
+}
+
+.three-d-nav-item:hover .nav-icon {
+    transform: scale(1.1);
+}
+
+.nav-label {
+    font-weight: 500;
+}
+
+/* Content Area - Full width */
+.three-d-content {
+    flex: 1;
+    padding: 0;
+    overflow: auto;
+    color: #ffffff;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Scrollbar styling */
+.three-d-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.three-d-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.three-d-content::-webkit-scrollbar-thumb {
+    background: rgba(74, 144, 226, 0.5);
+    border-radius: 4px;
+}
+
+.three-d-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 144, 226, 0.7);
+}
+
+/* Prevent links from opening in new tab */
+.three-d-content-overlay a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.three-d-content-overlay a:hover {
+    text-decoration: underline;
+}
+
